@@ -1,0 +1,37 @@
+package com.meuconsultorio.di
+
+import android.content.Context
+import androidx.room.Room
+import com.meuconsultorio.data.dao.AppointmentDao
+import com.meuconsultorio.data.dao.PatientDao
+import com.meuconsultorio.data.dao.PaymentDao
+import com.meuconsultorio.data.dao.TreatmentDao
+import com.meuconsultorio.data.database.AppDatabase
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
+        Room.databaseBuilder(context, AppDatabase::class.java, "meu_consultorio.db").build()
+
+    @Provides
+    fun providePatientDao(db: AppDatabase): PatientDao = db.patientDao()
+
+    @Provides
+    fun provideAppointmentDao(db: AppDatabase): AppointmentDao = db.appointmentDao()
+
+    @Provides
+    fun provideTreatmentDao(db: AppDatabase): TreatmentDao = db.treatmentDao()
+
+    @Provides
+    fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
+}
