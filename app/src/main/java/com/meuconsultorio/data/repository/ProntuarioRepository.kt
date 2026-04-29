@@ -2,24 +2,41 @@ package com.meuconsultorio.data.repository
 
 import com.meuconsultorio.data.dao.ProntuarioDao
 import com.meuconsultorio.data.entity.ProntuarioEntry
+import com.meuconsultorio.data.firebase.FirestoreSync
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ProntuarioRepository @Inject constructor(private val dao: ProntuarioDao) {
-
-    fun getEntriesByPatient(patientId: Long): Flow<List<ProntuarioEntry>> =
-        dao.getEntriesByPatient(patientId)
-
-    fun getEntriesByAppointment(appointmentId: Long): Flow<List<ProntuarioEntry>> =
-        dao.getEntriesByAppointment(appointmentId)
-
+class ProntuarioRepository @Inject constructor(
+    private val dao: ProntuarioDao,
+    private val sync: FirestoreSync
+) {
+    fun getEntriesByPatient(patientId: Long): Flow<List<ProntuarioEntry>> = dao.getEntriesByPatient(patientId)
+    fun getEntriesByAppointment(appointmentId: Long): Flow<List<ProntuarioEntry>> = dao.getEntriesByAppointment(appointmentId)
     fun getEntryById(id: Long): Flow<ProntuarioEntry?> = dao.getEntryById(id)
 
-    suspend fun insertEntry(entry: ProntuarioEntry): Long = dao.insert(entry)
+    suspend fun insertEntry(entry: ProntuarioEntry): Long {
+        val id = dao.insert(entry)
+        sync.pushProntuarioEntry(entry.copy(id = id))
+        return id
+    }
 
-    suspend fun updateEntry(entry: ProntuarioEntry) = dao.update(entry)
+    suspend fun updateEntry(entry: ProntuarioEntry) {
+        dao.update(entry)
+        sync.pushProntuarioEntry(entry)
+    }
 
-    suspend fun deleteEntry(entry: ProntuarioEntry) = dao.delete(entry)
+    suspend fun deleteEntry(entry: ProntuarioEntry) {
+        dao.delete(entry)
+        sync.deleteProntuarioEntry(entry.id)
+    }
+
+    suspend fun uploadImageAndUpdateEntry(entry: ProntuarioEntry) {
+        val path = entry.imagePath ?: return
+        val url = sync.uploadProntuarioImage(entry.id, path) ?: return
+        val updated = entry.copy(imageUrl = url)
+        dao.update(updated)
+        sync.pushProntuarioEntry(updated)
+    }
 }

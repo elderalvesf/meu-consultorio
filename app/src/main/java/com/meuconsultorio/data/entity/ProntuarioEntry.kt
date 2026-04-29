@@ -29,5 +29,6 @@ data class ProntuarioEntry(
     val appointmentId: Long? = null,
     val text: String = "",
     val imagePath: String? = null,
+    val imageUrl: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

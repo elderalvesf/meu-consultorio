@@ -1,6 +1,7 @@
 package com.meuconsultorio.ui.navigation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,6 +16,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.meuconsultorio.ui.appointments.AppointmentFormScreen
 import com.meuconsultorio.ui.appointments.AppointmentListScreen
+import com.meuconsultorio.ui.auth.LoginScreen
 import com.meuconsultorio.ui.financial.FinancialScreen
 import com.meuconsultorio.ui.financial.PaymentFormScreen
 import com.meuconsultorio.ui.home.HomeScreen
@@ -24,6 +26,7 @@ import com.meuconsultorio.ui.patients.PatientListScreen
 import com.meuconsultorio.ui.prontuario.ProntuarioFormScreen
 import com.meuconsultorio.ui.treatments.TreatmentFormScreen
 import com.meuconsultorio.ui.util.isTablet
+import com.meuconsultorio.viewmodel.AuthViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Início", Icons.Filled.Home)
@@ -95,7 +98,23 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 val bottomNavItems = listOf(Screen.Home, Screen.Patients, Screen.Appointments, Screen.Financial)
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
+    val authState by authViewModel.authState.collectAsState()
+
+    when (authState) {
+        is AuthViewModel.AuthState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return
+        }
+        is AuthViewModel.AuthState.Unauthenticated -> {
+            LoginScreen(authViewModel)
+            return
+        }
+        else -> Unit
+    }
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination

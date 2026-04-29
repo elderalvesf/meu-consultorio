@@ -28,9 +28,7 @@ class ProntuarioViewModel @Inject constructor(
 
     fun loadPatientEntries(patientId: Long) {
         viewModelScope.launch {
-            repository.getEntriesByPatient(patientId).collect {
-                _patientEntries.value = it
-            }
+            repository.getEntriesByPatient(patientId).collect { _patientEntries.value = it }
         }
     }
 
@@ -42,18 +40,18 @@ class ProntuarioViewModel @Inject constructor(
 
     fun saveEntry(entry: ProntuarioEntry, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            if (entry.id == 0L) repository.insertEntry(entry)
-            else repository.updateEntry(entry)
+            val savedId = if (entry.id == 0L) repository.insertEntry(entry)
+                          else { repository.updateEntry(entry); entry.id }
             onComplete()
+            if (entry.imagePath != null) {
+                launch { repository.uploadImageAndUpdateEntry(entry.copy(id = savedId)) }
+            }
         }
     }
 
     fun deleteEntry(entry: ProntuarioEntry) {
         viewModelScope.launch {
-            entry.imagePath?.let { path ->
-                val file = File(path)
-                if (file.exists()) file.delete()
-            }
+            entry.imagePath?.let { path -> File(path).takeIf { it.exists() }?.delete() }
             repository.deleteEntry(entry)
         }
     }
@@ -64,13 +62,10 @@ class ProntuarioViewModel @Inject constructor(
                 val dir = File(context.filesDir, "prontuario").apply { mkdirs() }
                 val destFile = File(dir, "prontuario_${System.currentTimeMillis()}.jpg")
                 context.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(destFile).use { output ->
-                        input.copyTo(output)
-                    }
+                    FileOutputStream(destFile).use { output -> input.copyTo(output) }
                 }
                 destFile.absolutePath
             } catch (e: Exception) {
-                e.printStackTrace()
                 null
             }
         }

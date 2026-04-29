@@ -270,7 +270,8 @@ fun InlineProntuarioEntry(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showFullImage by remember { mutableStateOf(false) }
 
-    if (showFullImage && entry.imagePath != null) {
+    val fullImageModel = entry.imagePath?.let { File(it) } ?: entry.imageUrl
+    if (showFullImage && fullImageModel != null) {
         Dialog(
             onDismissRequest = { showFullImage = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -283,7 +284,7 @@ fun InlineProntuarioEntry(
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
-                    model = File(entry.imagePath),
+                    model = fullImageModel,
                     contentDescription = "Imagem expandida",
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     contentScale = ContentScale.FillWidth
@@ -341,10 +342,11 @@ fun InlineProntuarioEntry(
                 Spacer(Modifier.height(4.dp))
                 Text(entry.text, style = MaterialTheme.typography.bodyMedium)
             }
-            entry.imagePath?.let { path ->
+            val imageModel = entry.imagePath?.let { File(it) } ?: entry.imageUrl
+            if (imageModel != null) {
                 Spacer(Modifier.height(6.dp))
                 AsyncImage(
-                    model = File(path),
+                    model = imageModel,
                     contentDescription = "Imagem do prontuário",
                     modifier = Modifier
                         .fillMaxWidth()
