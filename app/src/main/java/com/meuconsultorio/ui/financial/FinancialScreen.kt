@@ -4,9 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,10 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Payment
+import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.ui.components.*
-import com.meuconsultorio.ui.util.isTablet
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.PaymentViewModel
+import com.meuconsultorio.viewmodel.TreatmentViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,14 +28,18 @@ fun FinancialScreen(
     onEditPayment: (Long) -> Unit,
     onPatientClick: (Long) -> Unit,
     viewModel: PaymentViewModel = hiltViewModel(),
-    patientViewModel: PatientViewModel = hiltViewModel()
+    patientViewModel: PatientViewModel = hiltViewModel(),
+    treatmentViewModel: TreatmentViewModel = hiltViewModel()
 ) {
     val payments by viewModel.allPayments.collectAsState()
     val totalReceived by viewModel.totalReceived.collectAsState()
     val totalPending by viewModel.totalPending.collectAsState()
     val monthReceived by viewModel.monthReceived.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
+    val allTreatments by treatmentViewModel.allTreatments.collectAsState()
+    val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
 
+    var selectedTab by remember { mutableIntStateOf(0) }
     var filterPaid by remember { mutableStateOf<Boolean?>(null) }
     var showDeleteDialog by remember { mutableStateOf<Payment?>(null) }
 
@@ -56,7 +58,6 @@ fun FinancialScreen(
     }
 
     val patientMap = patients.associateBy { it.id }
-    val tablet = isTablet()
 
     val displayedPayments = when (filterPaid) {
         true -> payments.filter { it.isPaid }
@@ -67,8 +68,10 @@ fun FinancialScreen(
     Scaffold(
         topBar = { AppTopBar(title = "Financeiro") },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddPayment) {
-                Icon(Icons.Filled.Add, contentDescription = "Novo pagamento")
+            if (selectedTab == 0) {
+                FloatingActionButton(onClick = onAddPayment) {
+                    Icon(Icons.Filled.Add, contentDescription = "Novo pagamento")
+                }
             }
         }
     ) { padding ->
@@ -98,52 +101,57 @@ fun FinancialScreen(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text("Recebido este mês", style = MaterialTheme.typography.labelMedium)
-                            Text(monthReceived.toCurrency(), style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.CalendarMonth,
+                        label = "Recebido este mês",
+                        value = monthReceived.toCurrency(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.MedicalServices,
+                        label = "Total em tratamentos",
+                        value = totalTreatmentCost.toCurrency(),
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
             }
 
             item {
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(selected = filterPaid == null, onClick = { filterPaid = null },
-                        label = { Text("Todos") })
-                    FilterChip(selected = filterPaid == true, onClick = { filterPaid = if (filterPaid == true) null else true },
-                        label = { Text("Pagos") }, leadingIcon = if (filterPaid == true) ({
-                            Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
-                        }) else null)
-                    FilterChip(selected = filterPaid == false, onClick = { filterPaid = if (filterPaid == false) null else false },
-                        label = { Text("Pendentes") })
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                        text = { Text("Pagamentos") })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                        text = { Text("Tratamentos") })
                 }
             }
 
-            if (displayedPayments.isEmpty()) {
-                item { EmptyState("Nenhum pagamento registrado", Modifier.height(200.dp)) }
-            } else if (tablet) {
-                item {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(
-                            (displayedPayments.size * 120 + 32).dp.coerceAtMost(1200.dp)
-                        )
-                    ) {
-                        gridItems(displayedPayments, key = { it.id }) { payment ->
+            when (selectedTab) {
+                0 -> {
+                    item {
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(selected = filterPaid == null, onClick = { filterPaid = null },
+                                label = { Text("Todos") })
+                            FilterChip(selected = filterPaid == true,
+                                onClick = { filterPaid = if (filterPaid == true) null else true },
+                                label = { Text("Pagos") },
+                                leadingIcon = if (filterPaid == true) ({
+                                    Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
+                                }) else null)
+                            FilterChip(selected = filterPaid == false,
+                                onClick = { filterPaid = if (filterPaid == false) null else false },
+                                label = { Text("Pendentes") })
+                        }
+                    }
+                    if (displayedPayments.isEmpty()) {
+                        item { EmptyState("Nenhum pagamento registrado", Modifier.height(200.dp)) }
+                    } else {
+                        items(displayedPayments, key = { it.id }) { payment ->
                             FullPaymentCard(
                                 payment = payment,
                                 patientName = patientMap[payment.patientId]?.name ?: "Paciente",
@@ -154,15 +162,18 @@ fun FinancialScreen(
                         }
                     }
                 }
-            } else {
-                items(displayedPayments, key = { it.id }) { payment ->
-                    FullPaymentCard(
-                        payment = payment,
-                        patientName = patientMap[payment.patientId]?.name ?: "Paciente",
-                        onEdit = { onEditPayment(payment.id) },
-                        onPatientClick = { onPatientClick(payment.patientId) },
-                        onDelete = { showDeleteDialog = payment }
-                    )
+                1 -> {
+                    if (allTreatments.isEmpty()) {
+                        item { EmptyState("Nenhum tratamento registrado", Modifier.height(200.dp)) }
+                    } else {
+                        items(allTreatments, key = { it.id }) { treatment ->
+                            TreatmentFinancialCard(
+                                treatment = treatment,
+                                patientName = patientMap[treatment.patientId]?.name ?: "Paciente",
+                                onPatientClick = { onPatientClick(treatment.patientId) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -247,6 +258,42 @@ fun FullPaymentCard(
                 Text(payment.notes, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TreatmentFinancialCard(
+    treatment: Treatment,
+    patientName: String,
+    onPatientClick: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(patientName, style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clickable(onClick = onPatientClick))
+                Text(treatment.procedure, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (treatment.tooth.isNotBlank()) {
+                    Text("Dente: ${treatment.tooth}", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(treatment.date.toFormattedDate(), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(treatment.cost.toCurrency(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary)
+                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
+                    Text(treatment.status.label,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
             }
         }
     }

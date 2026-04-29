@@ -131,6 +131,7 @@ fun AppNavigation() {
                     patientId = patientId,
                     onEdit = { navController.navigate(Screen.PatientForm.createRoute(patientId)) },
                     onAddAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(patientId = patientId)) },
+                    onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
                     onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(patientId = patientId)) },
                     onAddPayment = { navController.navigate(Screen.PaymentForm.createRoute(patientId = patientId)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it, patientId = patientId)) },

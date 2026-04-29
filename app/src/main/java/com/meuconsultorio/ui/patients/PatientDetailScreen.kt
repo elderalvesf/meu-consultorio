@@ -37,6 +37,7 @@ fun PatientDetailScreen(
     patientId: Long,
     onEdit: () -> Unit,
     onAddAppointment: () -> Unit,
+    onEditAppointment: (Long) -> Unit,
     onAddTreatment: () -> Unit,
     onAddPayment: () -> Unit,
     onEditTreatment: (Long) -> Unit,
@@ -101,6 +102,8 @@ fun PatientDetailScreen(
             return@Scaffold
         }
 
+        val entriesByAppointment = prontuarioEntries.groupBy { it.appointmentId }
+
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             item {
                 PatientInfoCard(patient = patient!!, totalCost = totalCost)
@@ -109,13 +112,11 @@ fun PatientDetailScreen(
             item {
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                        text = { Text("Consultas (${appointments.size})") })
+                        text = { Text("Prontuário (${appointments.size})") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
                         text = { Text("Tratamentos (${treatments.size})") })
                     Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 },
                         text = { Text("Pagamentos (${payments.size})") })
-                    Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 },
-                        text = { Text("Prontuário (${prontuarioEntries.size})") })
                 }
             }
 
@@ -133,10 +134,15 @@ fun PatientDetailScreen(
                     if (appointments.isEmpty()) {
                         item { EmptyState("Nenhuma consulta registrada", Modifier.height(200.dp)) }
                     } else {
-                        items(appointments) { appointment ->
-                            AppointmentItemCard(
+                        items(appointments, key = { it.id }) { appointment ->
+                            val appointmentEntries = entriesByAppointment[appointment.id] ?: emptyList()
+                            AppointmentProntuarioCard(
                                 appointment = appointment,
+                                prontuarioEntries = appointmentEntries,
+                                onEditAppointment = { onEditAppointment(appointment.id) },
                                 onOpenProntuario = { onOpenProntuario(appointment.id) },
+                                onEditProntuario = onEditProntuario,
+                                onDeleteEntry = { prontuarioViewModel.deleteEntry(it) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
@@ -186,32 +192,168 @@ fun PatientDetailScreen(
                         }
                     }
                 }
-                3 -> {
-                    item {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-                            FilledTonalButton(onClick = { onOpenProntuario(null) }) {
-                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Nova entrada")
-                            }
-                        }
+            }
+
+            item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
+}
+
+@Composable
+fun AppointmentProntuarioCard(
+    appointment: Appointment,
+    prontuarioEntries: List<ProntuarioEntry>,
+    onEditAppointment: () -> Unit,
+    onOpenProntuario: () -> Unit,
+    onEditProntuario: (Long) -> Unit,
+    onDeleteEntry: (ProntuarioEntry) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(appointment.procedureType, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(appointment.dateTime.toFormattedDateTime(), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (appointment.notes.isNotBlank()) {
+                        Text(appointment.notes, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (prontuarioEntries.isEmpty()) {
-                        item { EmptyState("Nenhuma entrada de prontuário", Modifier.height(200.dp)) }
-                    } else {
-                        items(prontuarioEntries) { entry ->
-                            ProntuarioEntryCard(
-                                entry = entry,
-                                onEdit = { onEditProntuario(entry.id) },
-                                onDelete = { prontuarioViewModel.deleteEntry(entry) },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Text(appointment.status.label,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Row {
+                        IconButton(onClick = onEditAppointment, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Editar consulta",
+                                modifier = Modifier.size(16.dp))
+                        }
+                        IconButton(onClick = onOpenProntuario, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Filled.MedicalServices, contentDescription = "Adicionar anotação",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
+            if (prontuarioEntries.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                prontuarioEntries.forEach { entry ->
+                    InlineProntuarioEntry(
+                        entry = entry,
+                        onEdit = { onEditProntuario(entry.id) },
+                        onDelete = { onDeleteEntry(entry) }
+                    )
+                    if (entry != prontuarioEntries.last()) {
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InlineProntuarioEntry(
+    entry: ProntuarioEntry,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) }
+
+    if (showFullImage && entry.imagePath != null) {
+        Dialog(
+            onDismissRequest = { showFullImage = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { showFullImage = false },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = File(entry.imagePath),
+                    contentDescription = "Imagem expandida",
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                    contentScale = ContentScale.FillWidth
+                )
+                IconButton(
+                    onClick = { showFullImage = false },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                ) {
+                    Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
+                        Icon(Icons.Filled.Close, contentDescription = "Fechar",
+                            tint = Color.White, modifier = Modifier.padding(6.dp))
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir anotação") },
+            text = { Text("Deseja excluir esta anotação do prontuário?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(entry.createdAt.toFormattedDateTime(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f))
+                IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(14.dp))
+                }
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Excluir",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.error)
+                }
+            }
+            if (entry.text.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(entry.text, style = MaterialTheme.typography.bodyMedium)
+            }
+            entry.imagePath?.let { path ->
+                Spacer(Modifier.height(6.dp))
+                AsyncImage(
+                    model = File(path),
+                    contentDescription = "Imagem do prontuário",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showFullImage = true },
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
     }
 }
@@ -266,41 +408,6 @@ fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String)
             tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
         Spacer(Modifier.width(8.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-fun AppointmentItemCard(
-    appointment: Appointment,
-    onOpenProntuario: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(appointment.procedureType, style = MaterialTheme.typography.titleMedium)
-                Text(appointment.dateTime.toFormattedDateTime(), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (appointment.notes.isNotBlank())
-                    Text(appointment.notes, style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Text(appointment.status.label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                }
-                if (onOpenProntuario != null) {
-                    Spacer(Modifier.height(4.dp))
-                    IconButton(onClick = onOpenProntuario, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Filled.MedicalServices, contentDescription = "Prontuário",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -366,94 +473,5 @@ fun ProntuarioEntryCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showFullImage by remember { mutableStateOf(false) }
-
-    if (showFullImage && entry.imagePath != null) {
-        Dialog(
-            onDismissRequest = { showFullImage = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.92f))
-                    .clickable { showFullImage = false },
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = File(entry.imagePath),
-                    contentDescription = "Imagem expandida",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                    contentScale = ContentScale.FillWidth
-                )
-                IconButton(
-                    onClick = { showFullImage = false },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                ) {
-                    Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
-                        Icon(Icons.Filled.Close, contentDescription = "Fechar",
-                            tint = Color.White, modifier = Modifier.padding(6.dp))
-                    }
-                }
-            }
-        }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Excluir entrada") },
-            text = { Text("Deseja excluir esta entrada do prontuário?") },
-            confirmButton = {
-                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
-                    Text("Excluir", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
-            }
-        )
-    }
-
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
-        Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(entry.createdAt.toFormattedDateTime(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
-                }
-                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Excluir",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error)
-                }
-            }
-
-            if (entry.text.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(entry.text, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            entry.imagePath?.let { path ->
-                Spacer(Modifier.height(8.dp))
-                AsyncImage(
-                    model = File(path),
-                    contentDescription = "Imagem do prontuário",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { showFullImage = true },
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-    }
+    InlineProntuarioEntry(entry = entry, onEdit = onEdit, onDelete = onDelete)
 }

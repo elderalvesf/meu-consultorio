@@ -19,6 +19,9 @@ interface TreatmentDao {
     @Query("SELECT SUM(cost) FROM treatments WHERE patientId = :patientId")
     fun getTotalCostByPatient(patientId: Long): Flow<Double?>
 
+    @Query("SELECT SUM(cost) FROM treatments")
+    fun getTotalCost(): Flow<Double?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTreatment(treatment: Treatment): Long
 
