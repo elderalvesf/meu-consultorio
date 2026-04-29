@@ -1,5 +1,7 @@
 package com.meuconsultorio.ui.patients
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,7 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -362,6 +367,40 @@ fun ProntuarioEntryCard(
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) }
+
+    if (showFullImage && entry.imagePath != null) {
+        Dialog(
+            onDismissRequest = { showFullImage = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { showFullImage = false },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = File(entry.imagePath),
+                    contentDescription = "Imagem expandida",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    contentScale = ContentScale.FillWidth
+                )
+                IconButton(
+                    onClick = { showFullImage = false },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                ) {
+                    Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
+                        Icon(Icons.Filled.Close, contentDescription = "Fechar",
+                            tint = Color.White, modifier = Modifier.padding(6.dp))
+                    }
+                }
+            }
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -410,7 +449,8 @@ fun ProntuarioEntryCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showFullImage = true },
                     contentScale = ContentScale.Crop
                 )
             }
