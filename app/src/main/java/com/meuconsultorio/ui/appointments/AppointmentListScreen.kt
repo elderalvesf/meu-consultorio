@@ -46,7 +46,18 @@ fun AppointmentListScreen(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { viewModel.selectDate(it) }
+                    datePickerState.selectedDateMillis?.let { utcMillis ->
+                        // selectedMillis é UTC midnight — converter para local noon do mesmo dia
+                        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = utcMillis }
+                        val localCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
+                            set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                            set(Calendar.HOUR_OF_DAY, 12)
+                            set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        }
+                        viewModel.selectDate(localCal.timeInMillis)
+                    }
                     showDatePicker = false
                 }) { Text("OK") }
             },

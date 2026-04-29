@@ -14,6 +14,13 @@ class TreatmentViewModel @Inject constructor(
     private val repository: TreatmentRepository
 ) : ViewModel() {
 
+    val allTreatments: StateFlow<List<Treatment>> = repository.getAllTreatments()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val totalTreatmentCost: StateFlow<Double> = repository.getTotalCost()
+        .map { it ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     private val _patientTreatments = MutableStateFlow<List<Treatment>>(emptyList())
     val patientTreatments: StateFlow<List<Treatment>> = _patientTreatments.asStateFlow()
 

@@ -97,7 +97,8 @@ fun AppointmentFormScreen(
                     datePickerState.selectedDateMillis?.let { selectedMs ->
                         val cal = Calendar.getInstance().apply {
                             timeInMillis = dateTime
-                            val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedMs }
+                            // selectedMs é UTC midnight — usar Calendar UTC para extrair dia correto
+                            val selectedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = selectedMs }
                             set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
                             set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
                             set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))

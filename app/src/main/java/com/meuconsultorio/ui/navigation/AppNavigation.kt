@@ -1,13 +1,16 @@
 package com.meuconsultorio.ui.navigation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -15,14 +18,17 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.meuconsultorio.ui.appointments.AppointmentFormScreen
 import com.meuconsultorio.ui.appointments.AppointmentListScreen
+import com.meuconsultorio.ui.auth.LoginScreen
 import com.meuconsultorio.ui.financial.FinancialScreen
 import com.meuconsultorio.ui.financial.PaymentFormScreen
 import com.meuconsultorio.ui.home.HomeScreen
 import com.meuconsultorio.ui.patients.PatientDetailScreen
 import com.meuconsultorio.ui.patients.PatientFormScreen
 import com.meuconsultorio.ui.patients.PatientListScreen
+import com.meuconsultorio.ui.prontuario.ProntuarioFormScreen
 import com.meuconsultorio.ui.treatments.TreatmentFormScreen
 import com.meuconsultorio.ui.util.isTablet
+import com.meuconsultorio.viewmodel.AuthViewModel
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Home : Screen("home", "Início", Icons.Filled.Home)
@@ -72,12 +78,45 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
             return if (params.isNotEmpty()) "payment-form?$params" else "payment-form"
         }
     }
+    object ProntuarioForm : Screen(
+        "prontuario-form?patientId={patientId}&appointmentId={appointmentId}&entryId={entryId}",
+        "Prontuário", Icons.Filled.MedicalServices
+    ) {
+        fun createRoute(
+            patientId: Long,
+            appointmentId: Long? = null,
+            entryId: Long? = null
+        ): String {
+            val params = buildList {
+                add("patientId=$patientId")
+                if (appointmentId != null) add("appointmentId=$appointmentId")
+                if (entryId != null) add("entryId=$entryId")
+            }.joinToString("&")
+            return "prontuario-form?$params"
+        }
+    }
 }
 
 val bottomNavItems = listOf(Screen.Home, Screen.Patients, Screen.Appointments, Screen.Financial)
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
+    val authState by authViewModel.authState.collectAsState()
+
+    when (authState) {
+        is AuthViewModel.AuthState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return
+        }
+        is AuthViewModel.AuthState.Unauthenticated -> {
+            LoginScreen(authViewModel)
+            return
+        }
+        else -> Unit
+    }
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -113,10 +152,17 @@ fun AppNavigation() {
                     patientId = patientId,
                     onEdit = { navController.navigate(Screen.PatientForm.createRoute(patientId)) },
                     onAddAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(patientId = patientId)) },
+                    onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
                     onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(patientId = patientId)) },
                     onAddPayment = { navController.navigate(Screen.PaymentForm.createRoute(patientId = patientId)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it, patientId = patientId)) },
                     onEditPayment = { navController.navigate(Screen.PaymentForm.createRoute(paymentId = it, patientId = patientId)) },
+                    onOpenProntuario = { appointmentId ->
+                        navController.navigate(Screen.ProntuarioForm.createRoute(patientId, appointmentId = appointmentId))
+                    },
+                    onEditProntuario = { entryId ->
+                        navController.navigate(Screen.ProntuarioForm.createRoute(patientId, entryId = entryId))
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -193,11 +239,29 @@ fun AppNavigation() {
                     onBack = { navController.popBackStack() }
                 )
             }
+            composable(
+                route = Screen.ProntuarioForm.route,
+                arguments = listOf(
+                    navArgument("patientId") { type = NavType.LongType; defaultValue = 0L },
+                    navArgument("appointmentId") { type = NavType.LongType; defaultValue = 0L },
+                    navArgument("entryId") { type = NavType.LongType; defaultValue = 0L }
+                )
+            ) { backStack ->
+                val patientId = backStack.arguments?.getLong("patientId") ?: 0L
+                val appointmentId = backStack.arguments?.getLong("appointmentId")?.takeIf { it != 0L }
+                val entryId = backStack.arguments?.getLong("entryId")?.takeIf { it != 0L }
+                ProntuarioFormScreen(
+                    patientId = patientId,
+                    appointmentId = appointmentId,
+                    entryId = entryId,
+                    onSave = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 
     if (tablet && isTopLevel) {
-        // Tablet: NavigationRail on the left side
         Row(Modifier.fillMaxSize()) {
             NavigationRail(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -232,7 +296,6 @@ fun AppNavigation() {
             }
         }
     } else {
-        // Phone: BottomNavigationBar
         Scaffold(
             bottomBar = {
                 if (isTopLevel) {

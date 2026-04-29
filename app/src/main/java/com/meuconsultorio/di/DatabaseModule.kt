@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.meuconsultorio.data.dao.AppointmentDao
 import com.meuconsultorio.data.dao.PatientDao
 import com.meuconsultorio.data.dao.PaymentDao
+import com.meuconsultorio.data.dao.ProntuarioDao
 import com.meuconsultorio.data.dao.TreatmentDao
 import com.meuconsultorio.data.database.AppDatabase
 import dagger.Module
@@ -21,7 +22,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "meu_consultorio.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "meu_consultorio.db")
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .build()
 
     @Provides
     fun providePatientDao(db: AppDatabase): PatientDao = db.patientDao()
@@ -34,4 +37,7 @@ object DatabaseModule {
 
     @Provides
     fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
+
+    @Provides
+    fun provideProntuarioDao(db: AppDatabase): ProntuarioDao = db.prontuarioDao()
 }
