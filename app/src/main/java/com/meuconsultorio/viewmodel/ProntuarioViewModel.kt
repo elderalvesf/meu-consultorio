@@ -40,12 +40,9 @@ class ProntuarioViewModel @Inject constructor(
 
     fun saveEntry(entry: ProntuarioEntry, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            val savedId = if (entry.id == 0L) repository.insertEntry(entry)
-                          else { repository.updateEntry(entry); entry.id }
+            if (entry.id == 0L) repository.insertEntry(entry)
+            else repository.updateEntry(entry)
             onComplete()
-            if (entry.imagePath != null) {
-                launch { repository.uploadImageAndUpdateEntry(entry.copy(id = savedId)) }
-            }
         }
     }
 

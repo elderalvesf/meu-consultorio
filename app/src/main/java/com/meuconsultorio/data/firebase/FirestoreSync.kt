@@ -1,23 +1,19 @@
 package com.meuconsultorio.data.firebase
 
-import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import com.meuconsultorio.data.dao.*
 import com.meuconsultorio.data.entity.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FirestoreSync @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage,
     private val auth: FirebaseAuth,
     private val patientDao: PatientDao,
     private val appointmentDao: AppointmentDao,
@@ -105,22 +101,6 @@ class FirestoreSync @Inject constructor(
     fun deleteProntuarioEntry(id: Long) {
         if (!isLoggedIn) return
         colProntuario.document(id.toString()).delete()
-        storage.reference.child("prontuario/$id.jpg").delete()
-    }
-
-    suspend fun uploadProntuarioImage(entryId: Long, localPath: String): String? {
-        if (!isLoggedIn) return null
-        return try {
-            val file = File(localPath)
-            if (!file.exists()) return null
-            val ref = storage.reference.child("prontuario/$entryId.jpg")
-            ref.putFile(Uri.fromFile(file)).await()
-            val url = ref.downloadUrl.await().toString()
-            colProntuario.document(entryId.toString()).update("imageUrl", url)
-            url
-        } catch (e: Exception) {
-            null
-        }
     }
 
     suspend fun pullAll() {
