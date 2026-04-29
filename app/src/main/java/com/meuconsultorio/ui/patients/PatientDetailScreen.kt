@@ -11,15 +11,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.meuconsultorio.data.entity.*
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.PaymentViewModel
+import com.meuconsultorio.viewmodel.ProntuarioViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,17 +36,21 @@ fun PatientDetailScreen(
     onAddPayment: () -> Unit,
     onEditTreatment: (Long) -> Unit,
     onEditPayment: (Long) -> Unit,
+    onOpenProntuario: (appointmentId: Long?) -> Unit,
+    onEditProntuario: (entryId: Long) -> Unit,
     onBack: () -> Unit,
     patientViewModel: PatientViewModel = hiltViewModel(),
     appointmentViewModel: AppointmentViewModel = hiltViewModel(),
     treatmentViewModel: TreatmentViewModel = hiltViewModel(),
-    paymentViewModel: PaymentViewModel = hiltViewModel()
+    paymentViewModel: PaymentViewModel = hiltViewModel(),
+    prontuarioViewModel: ProntuarioViewModel = hiltViewModel()
 ) {
     val patient by patientViewModel.selectedPatient.collectAsState()
     val appointments by appointmentViewModel.patientAppointments.collectAsState()
     val treatments by treatmentViewModel.patientTreatments.collectAsState()
     val payments by paymentViewModel.patientPayments.collectAsState()
     val totalCost by treatmentViewModel.patientTotalCost.collectAsState()
+    val prontuarioEntries by prontuarioViewModel.patientEntries.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -51,6 +60,7 @@ fun PatientDetailScreen(
         appointmentViewModel.loadPatientAppointments(patientId)
         treatmentViewModel.loadPatientTreatments(patientId)
         paymentViewModel.loadPatientPayments(patientId)
+        prontuarioViewModel.loadPatientEntries(patientId)
     }
 
     if (showDeleteDialog) {
@@ -99,6 +109,8 @@ fun PatientDetailScreen(
                         text = { Text("Tratamentos (${treatments.size})") })
                     Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 },
                         text = { Text("Pagamentos (${payments.size})") })
+                    Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 },
+                        text = { Text("Prontuário (${prontuarioEntries.size})") })
                 }
             }
 
@@ -117,7 +129,11 @@ fun PatientDetailScreen(
                         item { EmptyState("Nenhuma consulta registrada", Modifier.height(200.dp)) }
                     } else {
                         items(appointments) { appointment ->
-                            AppointmentItemCard(appointment = appointment, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            AppointmentItemCard(
+                                appointment = appointment,
+                                onOpenProntuario = { onOpenProntuario(appointment.id) },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }
@@ -160,6 +176,29 @@ fun PatientDetailScreen(
                             PaymentItemCard(
                                 payment = payment,
                                 onEdit = { onEditPayment(payment.id) },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+                3 -> {
+                    item {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
+                            FilledTonalButton(onClick = { onOpenProntuario(null) }) {
+                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Nova entrada")
+                            }
+                        }
+                    }
+                    if (prontuarioEntries.isEmpty()) {
+                        item { EmptyState("Nenhuma entrada de prontuário", Modifier.height(200.dp)) }
+                    } else {
+                        items(prontuarioEntries) { entry ->
+                            ProntuarioEntryCard(
+                                entry = entry,
+                                onEdit = { onEditProntuario(entry.id) },
+                                onDelete = { prontuarioViewModel.deleteEntry(entry) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
@@ -226,7 +265,11 @@ fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String)
 }
 
 @Composable
-fun AppointmentItemCard(appointment: Appointment, modifier: Modifier = Modifier) {
+fun AppointmentItemCard(
+    appointment: Appointment,
+    onOpenProntuario: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
     Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -237,10 +280,20 @@ fun AppointmentItemCard(appointment: Appointment, modifier: Modifier = Modifier)
                     Text(appointment.notes, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
-                Text(appointment.status.label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+            Column(horizontalAlignment = Alignment.End) {
+                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Text(appointment.status.label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+                if (onOpenProntuario != null) {
+                    Spacer(Modifier.height(4.dp))
+                    IconButton(onClick = onOpenProntuario, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Filled.MedicalServices, contentDescription = "Prontuário",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
         }
     }
@@ -296,6 +349,70 @@ fun PaymentItemCard(payment: Payment, onEdit: () -> Unit, modifier: Modifier = M
                 IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProntuarioEntryCard(
+    entry: ProntuarioEntry,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir entrada") },
+            text = { Text("Deseja excluir esta entrada do prontuário?") },
+            confirmButton = {
+                TextButton(onClick = { onDelete(); showDeleteDialog = false }) {
+                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(entry.createdAt.toFormattedDateTime(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
+                }
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Excluir",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            if (entry.text.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(entry.text, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            entry.imagePath?.let { path ->
+                Spacer(Modifier.height(8.dp))
+                AsyncImage(
+                    model = File(path),
+                    contentDescription = "Imagem do prontuário",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
     }

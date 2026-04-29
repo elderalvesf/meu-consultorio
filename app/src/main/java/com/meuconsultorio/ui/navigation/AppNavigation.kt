@@ -21,6 +21,7 @@ import com.meuconsultorio.ui.home.HomeScreen
 import com.meuconsultorio.ui.patients.PatientDetailScreen
 import com.meuconsultorio.ui.patients.PatientFormScreen
 import com.meuconsultorio.ui.patients.PatientListScreen
+import com.meuconsultorio.ui.prontuario.ProntuarioFormScreen
 import com.meuconsultorio.ui.treatments.TreatmentFormScreen
 import com.meuconsultorio.ui.util.isTablet
 
@@ -72,6 +73,23 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
             return if (params.isNotEmpty()) "payment-form?$params" else "payment-form"
         }
     }
+    object ProntuarioForm : Screen(
+        "prontuario-form?patientId={patientId}&appointmentId={appointmentId}&entryId={entryId}",
+        "Prontuário", Icons.Filled.MedicalServices
+    ) {
+        fun createRoute(
+            patientId: Long,
+            appointmentId: Long? = null,
+            entryId: Long? = null
+        ): String {
+            val params = buildList {
+                add("patientId=$patientId")
+                if (appointmentId != null) add("appointmentId=$appointmentId")
+                if (entryId != null) add("entryId=$entryId")
+            }.joinToString("&")
+            return "prontuario-form?$params"
+        }
+    }
 }
 
 val bottomNavItems = listOf(Screen.Home, Screen.Patients, Screen.Appointments, Screen.Financial)
@@ -117,6 +135,12 @@ fun AppNavigation() {
                     onAddPayment = { navController.navigate(Screen.PaymentForm.createRoute(patientId = patientId)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it, patientId = patientId)) },
                     onEditPayment = { navController.navigate(Screen.PaymentForm.createRoute(paymentId = it, patientId = patientId)) },
+                    onOpenProntuario = { appointmentId ->
+                        navController.navigate(Screen.ProntuarioForm.createRoute(patientId, appointmentId = appointmentId))
+                    },
+                    onEditProntuario = { entryId ->
+                        navController.navigate(Screen.ProntuarioForm.createRoute(patientId, entryId = entryId))
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -193,11 +217,29 @@ fun AppNavigation() {
                     onBack = { navController.popBackStack() }
                 )
             }
+            composable(
+                route = Screen.ProntuarioForm.route,
+                arguments = listOf(
+                    navArgument("patientId") { type = NavType.LongType; defaultValue = 0L },
+                    navArgument("appointmentId") { type = NavType.LongType; defaultValue = 0L },
+                    navArgument("entryId") { type = NavType.LongType; defaultValue = 0L }
+                )
+            ) { backStack ->
+                val patientId = backStack.arguments?.getLong("patientId") ?: 0L
+                val appointmentId = backStack.arguments?.getLong("appointmentId")?.takeIf { it != 0L }
+                val entryId = backStack.arguments?.getLong("entryId")?.takeIf { it != 0L }
+                ProntuarioFormScreen(
+                    patientId = patientId,
+                    appointmentId = appointmentId,
+                    entryId = entryId,
+                    onSave = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 
     if (tablet && isTopLevel) {
-        // Tablet: NavigationRail on the left side
         Row(Modifier.fillMaxSize()) {
             NavigationRail(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -232,7 +274,6 @@ fun AppNavigation() {
             }
         }
     } else {
-        // Phone: BottomNavigationBar
         Scaffold(
             bottomBar = {
                 if (isTopLevel) {
