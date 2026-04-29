@@ -31,4 +31,12 @@ class ProntuarioRepository @Inject constructor(
         dao.delete(entry)
         sync.deleteProntuarioEntry(entry.id)
     }
+
+    suspend fun uploadImageAndUpdateEntry(entry: ProntuarioEntry) {
+        val path = entry.imagePath ?: return
+        val url = sync.uploadProntuarioImage(entry.id, path) ?: return
+        val updated = entry.copy(imageUrl = url)
+        dao.update(updated)
+        sync.pushProntuarioEntry(updated)
+    }
 }
