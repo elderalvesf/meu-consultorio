@@ -2,18 +2,22 @@ package com.meuconsultorio.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.meuconsultorio.data.calendar.GoogleCalendarSync
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
 import com.meuconsultorio.data.repository.AppointmentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
 class AppointmentViewModel @Inject constructor(
-    private val repository: AppointmentRepository
+    private val repository: AppointmentRepository,
+    private val calendarSync: GoogleCalendarSync
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
@@ -55,11 +59,47 @@ class AppointmentViewModel @Inject constructor(
         }
     }
 
-    fun saveAppointment(appointment: Appointment, onComplete: () -> Unit = {}) {
+    fun saveAppointment(appointment: Appointment, onComplete: (Long) -> Unit = {}) {
         viewModelScope.launch {
-            if (appointment.id == 0L) repository.insertAppointment(appointment)
-            else repository.updateAppointment(appointment)
-            onComplete()
+            val id = if (appointment.id == 0L) repository.insertAppointment(appointment)
+            else {
+                repository.updateAppointment(appointment)
+                appointment.id
+            }
+            onComplete(id)
+        }
+    }
+
+    fun syncWithCalendar(
+        appointment: Appointment,
+        patientName: String,
+        onResult: (success: Boolean, message: String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val eventId = if (appointment.calendarEventId > 0L) {
+                val updated = calendarSync.updateEvent(appointment, appointment.calendarEventId, patientName)
+                if (updated) appointment.calendarEventId else -1L
+            } else {
+                calendarSync.insertEvent(appointment, patientName)
+            }
+
+            if (eventId > 0L) {
+                repository.updateAppointment(appointment.copy(calendarEventId = eventId))
+                withContext(Dispatchers.Main) { onResult(true, "Sincronizado com Google Calendar") }
+            } else {
+                withContext(Dispatchers.Main) { onResult(false, "Nenhum calendário encontrado no dispositivo") }
+            }
+        }
+    }
+
+    fun unsyncFromCalendar(
+        appointment: Appointment,
+        onResult: (success: Boolean) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            calendarSync.deleteEvent(appointment.calendarEventId)
+            repository.updateAppointment(appointment.copy(calendarEventId = -1L))
+            withContext(Dispatchers.Main) { onResult(true) }
         }
     }
 
@@ -70,7 +110,12 @@ class AppointmentViewModel @Inject constructor(
     }
 
     fun deleteAppointment(appointment: Appointment) {
-        viewModelScope.launch { repository.deleteAppointment(appointment) }
+        viewModelScope.launch {
+            if (appointment.calendarEventId > 0L) {
+                withContext(Dispatchers.IO) { calendarSync.deleteEvent(appointment.calendarEventId) }
+            }
+            repository.deleteAppointment(appointment)
+        }
     }
 
     private fun getDayRange(dateMillis: Long): Pair<Long, Long> {

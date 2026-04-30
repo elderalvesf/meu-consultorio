@@ -1,5 +1,9 @@
 package com.meuconsultorio.ui.appointments
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,8 +12,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
@@ -49,6 +56,7 @@ fun AppointmentFormScreen(
 ) {
     val selectedAppointment by viewModel.selectedAppointment.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
+    val context = LocalContext.current
 
     var selectedPatientId by remember { mutableStateOf(preselectedPatientId) }
     var procedureType by remember { mutableStateOf("") }
@@ -56,6 +64,11 @@ fun AppointmentFormScreen(
     var durationMinutes by remember { mutableIntStateOf(60) }
     var notes by remember { mutableStateOf("") }
     var dateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
+
+    var syncWithCalendar by remember { mutableStateOf(false) }
+    var syncMessage by remember { mutableStateOf<String?>(null) }
+    var isSyncing by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -65,6 +78,30 @@ fun AppointmentFormScreen(
 
     var patientError by remember { mutableStateOf(false) }
     var procedureError by remember { mutableStateOf(false) }
+
+    // Guarda o appointment montado para usar após pedido de permissão
+    var pendingAppointment by remember { mutableStateOf<Appointment?>(null) }
+    var pendingSavedId by remember { mutableLongStateOf(-1L) }
+
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.READ_CALENDAR] == true &&
+                      permissions[Manifest.permission.WRITE_CALENDAR] == true
+        val appt = pendingAppointment
+        if (granted && appt != null && pendingSavedId > 0L) {
+            val patientName = patients.find { it.id == appt.patientId }?.name ?: ""
+            isSyncing = true
+            viewModel.syncWithCalendar(appt.copy(id = pendingSavedId), patientName) { success, msg ->
+                isSyncing = false
+                syncMessage = msg
+                if (success) onSave()
+            }
+        } else {
+            syncMessage = if (!granted) "Permissão de calendário negada." else null
+            onSave()
+        }
+    }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateTime)
     val timePickerState = rememberTimePickerState(
@@ -85,6 +122,8 @@ fun AppointmentFormScreen(
                 durationMinutes = appt.durationMinutes
                 notes = appt.notes
                 dateTime = appt.dateTime
+                existingCalendarEventId = appt.calendarEventId
+                syncWithCalendar = appt.calendarEventId > 0L
             }
         }
     }
@@ -97,7 +136,6 @@ fun AppointmentFormScreen(
                     datePickerState.selectedDateMillis?.let { selectedMs ->
                         val cal = Calendar.getInstance().apply {
                             timeInMillis = dateTime
-                            // selectedMs é UTC midnight — usar Calendar UTC para extrair dia correto
                             val selectedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = selectedMs }
                             set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
                             set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
@@ -139,6 +177,53 @@ fun AppointmentFormScreen(
     val formattedTime = "${cal.get(Calendar.HOUR_OF_DAY).toString().padStart(2,'0')}:" +
             "${cal.get(Calendar.MINUTE).toString().padStart(2,'0')}"
 
+    fun handleSave() {
+        patientError = selectedPatientId == null
+        procedureError = procedureType.isBlank()
+        if (patientError || procedureError) return
+
+        val appointment = Appointment(
+            id = appointmentId ?: 0L,
+            patientId = selectedPatientId!!,
+            dateTime = dateTime,
+            durationMinutes = durationMinutes,
+            procedureType = procedureType,
+            status = status,
+            notes = notes,
+            calendarEventId = existingCalendarEventId
+        )
+        val patientName = patients.find { it.id == selectedPatientId }?.name ?: ""
+
+        viewModel.saveAppointment(appointment) { savedId ->
+            val savedAppointment = appointment.copy(id = savedId)
+
+            when {
+                syncWithCalendar -> {
+                    val hasRead = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+                    val hasWrite = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+                    if (hasRead && hasWrite) {
+                        isSyncing = true
+                        viewModel.syncWithCalendar(savedAppointment, patientName) { success, msg ->
+                            isSyncing = false
+                            syncMessage = msg
+                            if (success) onSave()
+                        }
+                    } else {
+                        pendingAppointment = savedAppointment
+                        pendingSavedId = savedId
+                        calendarPermissionLauncher.launch(
+                            arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
+                        )
+                    }
+                }
+                !syncWithCalendar && existingCalendarEventId > 0L -> {
+                    viewModel.unsyncFromCalendar(savedAppointment) { onSave() }
+                }
+                else -> onSave()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             AppTopBar(
@@ -148,29 +233,21 @@ fun AppointmentFormScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = {
-                    patientError = selectedPatientId == null
-                    procedureError = procedureType.isBlank()
-                    if (!patientError && !procedureError) {
-                        val appointment = Appointment(
-                            id = appointmentId ?: 0L,
-                            patientId = selectedPatientId!!,
-                            dateTime = dateTime,
-                            durationMinutes = durationMinutes,
-                            procedureType = procedureType,
-                            status = status,
-                            notes = notes
-                        )
-                        viewModel.saveAppointment(appointment) { onSave() }
-                    }
+                onClick = { if (!isSyncing) handleSave() },
+                icon = {
+                    if (isSyncing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.Filled.Save, contentDescription = null)
                 },
-                icon = { Icon(Icons.Filled.Save, contentDescription = null) },
-                text = { Text("Salvar") }
+                text = { Text(if (isSyncing) "Sincronizando..." else "Salvar") }
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ExposedDropdownMenuBox(
@@ -293,8 +370,65 @@ fun AppointmentFormScreen(
                 maxLines = 4
             )
 
+            // Card de sincronização com Google Calendar
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (syncWithCalendar)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.CalendarMonth,
+                        contentDescription = null,
+                        tint = if (syncWithCalendar)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Google Calendar",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            if (syncWithCalendar && existingCalendarEventId > 0L)
+                                "Sincronizado — será atualizado ao salvar"
+                            else if (syncWithCalendar)
+                                "Será adicionado ao salvar"
+                            else
+                                "Não sincronizado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = syncWithCalendar,
+                        onCheckedChange = { syncWithCalendar = it }
+                    )
+                }
+            }
+
+            syncMessage?.let { msg ->
+                Text(
+                    msg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (msg.startsWith("Sincronizado"))
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.error
+                )
+            }
+
             Spacer(Modifier.height(72.dp))
         }
     }
 }
-
