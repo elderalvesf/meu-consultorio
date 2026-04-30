@@ -1,5 +1,8 @@
 package com.meuconsultorio.ui.auth
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -18,6 +22,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.meuconsultorio.R
 import com.meuconsultorio.viewmodel.AuthViewModel
 
 @Composable
@@ -30,6 +38,38 @@ fun LoginScreen(viewModel: AuthViewModel) {
     var isLoading by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val googleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            try {
+                val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    .getResult(ApiException::class.java)
+                val idToken = account.idToken
+                if (idToken != null) {
+                    isLoading = true
+                    viewModel.signInWithGoogle(idToken) { msg ->
+                        errorMessage = msg
+                        isLoading = false
+                    }
+                } else {
+                    errorMessage = "Não foi possível obter o token do Google."
+                }
+            } catch (e: ApiException) {
+                errorMessage = "Erro ao entrar com Google (código ${e.statusCode})."
+            }
+        }
+    }
 
     fun submit() {
         if (email.isBlank() || password.isBlank()) {
@@ -141,12 +181,26 @@ fun LoginScreen(viewModel: AuthViewModel) {
                     strokeWidth = 2.dp
                 )
             } else {
-                Text(if (isCreatingAccount) "Criar conta" else "Entrar",
-                    style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (isCreatingAccount) "Criar conta" else "Entrar",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
 
         Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { googleLauncher.launch(googleSignInClient.signInIntent) },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isLoading
+        ) {
+            Icon(Icons.Filled.AccountCircle, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Entrar com Google", style = MaterialTheme.typography.titleMedium)
+        }
+
+        Spacer(Modifier.height(4.dp))
 
         TextButton(onClick = {
             isCreatingAccount = !isCreatingAccount

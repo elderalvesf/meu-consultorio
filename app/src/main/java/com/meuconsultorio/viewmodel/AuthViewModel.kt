@@ -3,6 +3,7 @@ package com.meuconsultorio.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.meuconsultorio.data.firebase.FirestoreSync
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +56,17 @@ class AuthViewModel @Inject constructor(
                 auth.createUserWithEmailAndPassword(email.trim(), password).await()
             } catch (e: Exception) {
                 onError(e.localizedMessage ?: "Erro ao criar conta.")
+            }
+        }
+    }
+
+    fun signInWithGoogle(idToken: String, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val credential = GoogleAuthProvider.getCredential(idToken, null)
+                auth.signInWithCredential(credential).await()
+            } catch (e: Exception) {
+                onError(e.localizedMessage ?: "Erro ao entrar com Google.")
             }
         }
     }

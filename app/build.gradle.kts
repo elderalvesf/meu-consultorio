@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.google.services.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

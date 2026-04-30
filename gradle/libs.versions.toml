@@ -18,6 +18,8 @@ coil = "2.7.0"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
 
+googleServicesAuth = "21.3.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -49,6 +51,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+google-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "googleServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
