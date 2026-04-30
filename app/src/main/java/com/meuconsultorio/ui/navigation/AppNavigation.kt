@@ -134,7 +134,8 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                 HomeScreen(
                     onNavigateToPatients = { navController.navigate(Screen.Patients.route) },
                     onNavigateToAppointments = { navController.navigate(Screen.Appointments.route) },
-                    onNavigateToAppointmentForm = { navController.navigate(Screen.AppointmentForm.createRoute()) }
+                    onNavigateToAppointmentForm = { navController.navigate(Screen.AppointmentForm.createRoute()) },
+                    onSignOut = { authViewModel.signOut() }
                 )
             }
             composable(Screen.Patients.route) {

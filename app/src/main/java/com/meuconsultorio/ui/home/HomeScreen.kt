@@ -31,6 +31,7 @@ fun HomeScreen(
     onNavigateToPatients: () -> Unit,
     onNavigateToAppointments: () -> Unit,
     onNavigateToAppointmentForm: () -> Unit,
+    onSignOut: () -> Unit = {},
     patientViewModel: PatientViewModel = hiltViewModel(),
     appointmentViewModel: AppointmentViewModel = hiltViewModel(),
     paymentViewModel: PaymentViewModel = hiltViewModel()
@@ -45,6 +46,24 @@ fun HomeScreen(
         .format(Date())
         .replaceFirstChar { it.uppercase() }
 
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Sair") },
+            text = { Text("Deseja encerrar a sessão?") },
+            confirmButton = {
+                TextButton(onClick = { showLogoutDialog = false; onSignOut() }) {
+                    Text("Sair")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,6 +77,9 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = onNavigateToAppointmentForm) {
                         Icon(Icons.Filled.Add, contentDescription = "Nova consulta")
+                    }
+                    IconButton(onClick = { showLogoutDialog = true }) {
+                        Icon(Icons.Filled.Logout, contentDescription = "Sair")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
