@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
-import Patient
+import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
@@ -34,7 +34,6 @@ fun AppointmentListScreen(
     viewModel: AppointmentViewModel = hiltViewModel(),
     patientViewModel: PatientViewModel = hiltViewModel()
 ) {
-    val allAppointments by viewModel.allAppointments.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val todayAppointments by viewModel.todayAppointments.collectAsState()
@@ -85,22 +84,20 @@ fun AppointmentListScreen(
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // View mode toggle
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.Center
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 SegmentedButton(
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     onClick = { viewMode = ViewMode.DIA },
-                    selected = viewMode == ViewMode.DIA,
-                    icon = { SegmentedButtonDefaults.ActiveIcon() }
+                    selected = viewMode == ViewMode.DIA
                 ) { Text("Dia") }
                 SegmentedButton(
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     onClick = { viewMode = ViewMode.SEMANA },
-                    selected = viewMode == ViewMode.SEMANA,
-                    icon = { SegmentedButtonDefaults.ActiveIcon() }
+                    selected = viewMode == ViewMode.SEMANA
                 ) { Text("Semana") }
             }
 
