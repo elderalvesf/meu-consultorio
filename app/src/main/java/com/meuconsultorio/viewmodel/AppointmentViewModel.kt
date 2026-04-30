@@ -19,12 +19,20 @@ class AppointmentViewModel @Inject constructor(
     private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
     val selectedDate: StateFlow<Long> = _selectedDate.asStateFlow()
 
+    private val _weekStart = MutableStateFlow(getWeekStart(System.currentTimeMillis()))
+    val weekStart: StateFlow<Long> = _weekStart.asStateFlow()
+
     val allAppointments: StateFlow<List<Appointment>> = repository.getAllAppointments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val todayAppointments: StateFlow<List<Appointment>> = _selectedDate.flatMapLatest { date ->
         val (start, end) = getDayRange(date)
         repository.getAppointmentsByDay(start, end)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val weekAppointments: StateFlow<List<Appointment>> = _weekStart.flatMapLatest { start ->
+        val end = start + 7L * 24 * 60 * 60 * 1000 - 1
+        repository.getAppointmentsByRange(start, end)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val todayCount: StateFlow<Int> = run {
@@ -40,6 +48,8 @@ class AppointmentViewModel @Inject constructor(
     val patientAppointments: StateFlow<List<Appointment>> = _patientAppointments.asStateFlow()
 
     fun selectDate(dateMillis: Long) { _selectedDate.value = dateMillis }
+    fun previousWeek() { _weekStart.value -= 7L * 24 * 60 * 60 * 1000 }
+    fun nextWeek() { _weekStart.value += 7L * 24 * 60 * 60 * 1000 }
 
     fun loadAppointment(id: Long) {
         viewModelScope.launch {
@@ -81,5 +91,14 @@ class AppointmentViewModel @Inject constructor(
         cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59)
         cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
         return Pair(start, cal.timeInMillis)
+    }
+
+    private fun getWeekStart(millis: Long): Long {
+        val cal = Calendar.getInstance().apply { timeInMillis = millis }
+        val daysFromMonday = (cal.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+        cal.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
     }
 }
