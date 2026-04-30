@@ -269,6 +269,7 @@ fun InlineProntuarioEntry(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showFullImage by remember { mutableStateOf(false) }
+    var imageExpanded by remember { mutableStateOf(false) }
 
     val fullImageModel = entry.imagePath?.let { File(it) } ?: entry.imageUrl
     if (showFullImage && fullImageModel != null) {
@@ -344,17 +345,34 @@ fun InlineProntuarioEntry(
             }
             val imageModel = entry.imagePath?.let { File(it) } ?: entry.imageUrl
             if (imageModel != null) {
-                Spacer(Modifier.height(6.dp))
-                AsyncImage(
-                    model = imageModel,
-                    contentDescription = "Imagem do prontuário",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { showFullImage = true },
-                    contentScale = ContentScale.Crop
-                )
+                Spacer(Modifier.height(4.dp))
+                TextButton(
+                    onClick = { imageExpanded = !imageExpanded },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        if (imageExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (imageExpanded) "Ocultar imagem" else "Ver imagem",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+                if (imageExpanded) {
+                    AsyncImage(
+                        model = imageModel,
+                        contentDescription = "Imagem do prontuário",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showFullImage = true },
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
     }
