@@ -20,6 +20,7 @@ import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.ui.util.isTablet
 import com.meuconsultorio.viewmodel.AppointmentViewModel
+import com.meuconsultorio.viewmodel.AuthViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
@@ -33,17 +34,37 @@ fun HomeScreen(
     onNavigateToAppointmentForm: () -> Unit,
     patientViewModel: PatientViewModel = hiltViewModel(),
     appointmentViewModel: AppointmentViewModel = hiltViewModel(),
-    paymentViewModel: PaymentViewModel = hiltViewModel()
+    paymentViewModel: PaymentViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val totalPatients by patientViewModel.totalPatients.collectAsState()
     val todayAppointments by appointmentViewModel.todayAppointments.collectAsState()
     val totalReceived by paymentViewModel.totalReceived.collectAsState()
     val monthReceived by paymentViewModel.monthReceived.collectAsState()
     val tablet = isTablet()
+    var showMenu by remember { mutableStateOf(false) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
 
     val today = SimpleDateFormat("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
         .format(Date())
         .replaceFirstChar { it.uppercase() }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text("Sair") },
+            text = { Text("Deseja sair da sua conta?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSignOutDialog = false
+                    authViewModel.signOut()
+                }) { Text("Sair") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -58,6 +79,24 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = onNavigateToAppointmentForm) {
                         Icon(Icons.Filled.Add, contentDescription = "Nova consulta")
+                    }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Sair") },
+                                leadingIcon = { Icon(Icons.Filled.Logout, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    showSignOutDialog = true
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

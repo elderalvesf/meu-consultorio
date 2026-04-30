@@ -25,7 +25,8 @@ data class Appointment(
     val procedureType: String,
     val status: AppointmentStatus = AppointmentStatus.AGENDADA,
     val notes: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val calendarEventId: Long = -1L
 )
 
 enum class AppointmentStatus(val label: String) {
