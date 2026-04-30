@@ -10,39 +10,52 @@ import java.util.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class CalendarInfo(val id: Long, val displayName: String)
+
 @Singleton
 class GoogleCalendarSync @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private fun findCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.ACCOUNT_TYPE)
+    private fun findGoogleCalendar(): CalendarInfo? {
+        val projection = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Calendars.ACCOUNT_TYPE,
+            CalendarContract.Calendars.IS_PRIMARY,
+            CalendarContract.Calendars.SYNC_EVENTS,
+            CalendarContract.Calendars.VISIBLE
+        )
         return try {
-            // Prefere conta Google, cai pro primeiro disponível se não encontrar
+            // Busca calendário Google com sync ativado, visível, prefere o primário
             context.contentResolver.query(
                 CalendarContract.Calendars.CONTENT_URI,
                 projection,
-                "${CalendarContract.Calendars.ACCOUNT_TYPE} = ?",
+                "${CalendarContract.Calendars.ACCOUNT_TYPE} = ?" +
+                        " AND ${CalendarContract.Calendars.SYNC_EVENTS} = 1" +
+                        " AND ${CalendarContract.Calendars.VISIBLE} = 1",
                 arrayOf("com.google"),
-                "${CalendarContract.Calendars._ID} ASC"
+                "${CalendarContract.Calendars.IS_PRIMARY} DESC, ${CalendarContract.Calendars._ID} ASC"
             )?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getLong(0) else null
-            } ?: context.contentResolver.query(
-                CalendarContract.Calendars.CONTENT_URI,
-                projection, null, null,
-                "${CalendarContract.Calendars._ID} ASC"
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getLong(0) else null
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Calendars._ID))
+                    val name = cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME))
+                    CalendarInfo(id, name ?: "Google Calendar")
+                } else {
+                    null
+                }
             }
         } catch (e: SecurityException) {
             null
         }
     }
 
-    fun insertEvent(appointment: Appointment, patientName: String): Long {
-        val calendarId = findCalendarId() ?: return -1L
+    fun insertEvent(appointment: Appointment, patientName: String): Pair<Long, String> {
+        val calendar = findGoogleCalendar()
+            ?: return Pair(-1L, "Nenhum calendário Google com sincronização ativa encontrado.\nVerifique se o Google Calendar está configurado no dispositivo e com sincronização ativada.")
+
         val endMillis = appointment.dateTime + appointment.durationMinutes * 60_000L
         val values = ContentValues().apply {
-            put(CalendarContract.Events.CALENDAR_ID, calendarId)
+            put(CalendarContract.Events.CALENDAR_ID, calendar.id)
             put(CalendarContract.Events.TITLE, "${appointment.procedureType} – $patientName")
             put(CalendarContract.Events.DESCRIPTION,
                 appointment.notes.ifBlank { "Consulta via Meu Consultório" })
@@ -53,9 +66,15 @@ class GoogleCalendarSync @Inject constructor(
         }
         return try {
             val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
-            uri?.lastPathSegment?.toLong() ?: -1L
+            val eventId = uri?.lastPathSegment?.toLong() ?: -1L
+            if (eventId > 0L)
+                Pair(eventId, "Adicionado em \"${calendar.displayName}\"")
+            else
+                Pair(-1L, "Erro ao criar evento no calendário.")
         } catch (e: SecurityException) {
-            -1L
+            Pair(-1L, "Permissão de calendário negada.")
+        } catch (e: Exception) {
+            Pair(-1L, "Erro inesperado: ${e.message}")
         }
     }
 

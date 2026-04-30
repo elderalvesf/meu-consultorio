@@ -67,7 +67,10 @@ fun AppointmentFormScreen(
     var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
 
     var syncWithCalendar by remember { mutableStateOf(false) }
-    var syncMessage by remember { mutableStateOf<String?>(null) }
+    var syncResultMessage by remember { mutableStateOf<String?>(null) }
+    var syncResultSuccess by remember { mutableStateOf(false) }
+    var showSyncResultDialog by remember { mutableStateOf(false) }
+    var pendingNavigateOnDismiss by remember { mutableStateOf(false) }
     var isSyncing by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -94,12 +97,16 @@ fun AppointmentFormScreen(
             isSyncing = true
             viewModel.syncWithCalendar(appt.copy(id = pendingSavedId), patientName) { success, msg ->
                 isSyncing = false
-                syncMessage = msg
-                if (success) onSave()
+                syncResultSuccess = success
+                syncResultMessage = msg
+                pendingNavigateOnDismiss = success
+                showSyncResultDialog = true
             }
         } else {
-            syncMessage = if (!granted) "Permissão de calendário negada." else null
-            onSave()
+            syncResultSuccess = false
+            syncResultMessage = "Permissão de calendário negada. A consulta foi salva, mas não foi adicionada ao Google Calendar."
+            pendingNavigateOnDismiss = true
+            showSyncResultDialog = true
         }
     }
 
@@ -205,8 +212,10 @@ fun AppointmentFormScreen(
                         isSyncing = true
                         viewModel.syncWithCalendar(savedAppointment, patientName) { success, msg ->
                             isSyncing = false
-                            syncMessage = msg
-                            if (success) onSave()
+                            syncResultSuccess = success
+                            syncResultMessage = msg
+                            pendingNavigateOnDismiss = success
+                            showSyncResultDialog = true
                         }
                     } else {
                         pendingAppointment = savedAppointment
@@ -222,6 +231,31 @@ fun AppointmentFormScreen(
                 else -> onSave()
             }
         }
+    }
+
+    if (showSyncResultDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSyncResultDialog = false
+                if (pendingNavigateOnDismiss) onSave()
+            },
+            icon = {
+                Icon(
+                    if (syncResultSuccess) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = if (syncResultSuccess) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text(if (syncResultSuccess) "Google Calendar" else "Erro na sincronização") },
+            text = { Text(syncResultMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSyncResultDialog = false
+                    if (pendingNavigateOnDismiss) onSave()
+                }) { Text("OK") }
+            }
+        )
     }
 
     Scaffold(
@@ -415,17 +449,6 @@ fun AppointmentFormScreen(
                         onCheckedChange = { syncWithCalendar = it }
                     )
                 }
-            }
-
-            syncMessage?.let { msg ->
-                Text(
-                    msg,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (msg.startsWith("Sincronizado"))
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.error
-                )
             }
 
             Spacer(Modifier.height(72.dp))

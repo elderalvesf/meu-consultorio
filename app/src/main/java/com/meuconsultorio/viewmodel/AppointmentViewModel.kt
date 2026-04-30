@@ -76,18 +76,19 @@ class AppointmentViewModel @Inject constructor(
         onResult: (success: Boolean, message: String) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val eventId = if (appointment.calendarEventId > 0L) {
+            val (eventId, message) = if (appointment.calendarEventId > 0L) {
                 val updated = calendarSync.updateEvent(appointment, appointment.calendarEventId, patientName)
-                if (updated) appointment.calendarEventId else -1L
+                if (updated) Pair(appointment.calendarEventId, "Evento atualizado no Google Calendar")
+                else Pair(-1L, "Erro ao atualizar evento no calendário.")
             } else {
                 calendarSync.insertEvent(appointment, patientName)
             }
 
             if (eventId > 0L) {
                 repository.updateAppointment(appointment.copy(calendarEventId = eventId))
-                withContext(Dispatchers.Main) { onResult(true, "Sincronizado com Google Calendar") }
+                withContext(Dispatchers.Main) { onResult(true, message) }
             } else {
-                withContext(Dispatchers.Main) { onResult(false, "Nenhum calendário encontrado no dispositivo") }
+                withContext(Dispatchers.Main) { onResult(false, message) }
             }
         }
     }
