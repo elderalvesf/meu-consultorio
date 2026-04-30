@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -18,7 +19,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.meuconsultorio.R
 import com.meuconsultorio.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(viewModel: AuthViewModel) {
@@ -30,6 +37,8 @@ fun LoginScreen(viewModel: AuthViewModel) {
     var isLoading by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     fun submit() {
         if (email.isBlank() || password.isBlank()) {
@@ -50,6 +59,32 @@ fun LoginScreen(viewModel: AuthViewModel) {
             viewModel.signUp(email, password, onError)
         } else {
             viewModel.signIn(email, password, onError)
+        }
+    }
+
+    fun signInWithGoogle() {
+        isLoading = true
+        errorMessage = null
+        scope.launch {
+            try {
+                val credentialManager = CredentialManager.create(context)
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val result = credentialManager.getCredential(context, request)
+                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                viewModel.signInWithGoogle(googleIdTokenCredential.idToken) { msg ->
+                    errorMessage = msg
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                errorMessage = e.localizedMessage ?: "Erro ao entrar com Google."
+                isLoading = false
+            }
         }
     }
 
@@ -141,9 +176,27 @@ fun LoginScreen(viewModel: AuthViewModel) {
                     strokeWidth = 2.dp
                 )
             } else {
-                Text(if (isCreatingAccount) "Criar conta" else "Entrar",
-                    style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (isCreatingAccount) "Criar conta" else "Entrar",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { signInWithGoogle() },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isLoading
+        ) {
+            Icon(
+                Icons.Filled.AccountCircle,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Entrar com Google", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(Modifier.height(12.dp))
