@@ -25,13 +25,15 @@ class FirestoreSync @Inject constructor(
     private val paymentDao: PaymentDao,
     private val prontuarioDao: ProntuarioDao
 ) {
-    private val isLoggedIn get() = auth.currentUser != null
+    private val uid get() = auth.currentUser?.uid
+    private val isLoggedIn get() = uid != null
 
-    private val colPatients get() = firestore.collection("patients")
-    private val colAppointments get() = firestore.collection("appointments")
-    private val colTreatments get() = firestore.collection("treatments")
-    private val colPayments get() = firestore.collection("payments")
-    private val colProntuario get() = firestore.collection("prontuario_entries")
+    private fun userDoc() = firestore.collection("users").document(uid!!)
+    private val colPatients get() = userDoc().collection("patients")
+    private val colAppointments get() = userDoc().collection("appointments")
+    private val colTreatments get() = userDoc().collection("treatments")
+    private val colPayments get() = userDoc().collection("payments")
+    private val colProntuario get() = userDoc().collection("prontuario_entries")
 
     fun pushPatient(patient: Patient) {
         if (!isLoggedIn) return
