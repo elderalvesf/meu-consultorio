@@ -32,7 +32,7 @@ fun FinancialScreen(
     treatmentViewModel: TreatmentViewModel = hiltViewModel()
 ) {
     val payments by viewModel.allPayments.collectAsState()
-    val monthReceived by viewModel.monthReceived.collectAsState()
+
     val patients by patientViewModel.patients.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
@@ -82,14 +82,6 @@ fun FinancialScreen(
             item {
                 Text("Resumo financeiro", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(8.dp))
-                FinancialCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Filled.CalendarMonth,
-                    label = "Recebido este mês",
-                    value = monthReceived.toCurrency(),
-                    color = MaterialTheme.colorScheme.primary
-                )
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinancialCard(
