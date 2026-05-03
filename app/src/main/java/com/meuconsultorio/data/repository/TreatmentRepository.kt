@@ -17,6 +17,8 @@ class TreatmentRepository @Inject constructor(
     fun getTreatmentById(id: Long): Flow<Treatment?> = dao.getTreatmentById(id)
     fun getTotalCostByPatient(patientId: Long): Flow<Double?> = dao.getTotalCostByPatient(patientId)
     fun getTotalCost(): Flow<Double?> = dao.getTotalCost()
+    fun getTotalPriceByPatient(patientId: Long): Flow<Double?> = dao.getTotalPriceByPatient(patientId)
+    fun getTotalPrice(): Flow<Double?> = dao.getTotalPrice()
 
     suspend fun insertTreatment(treatment: Treatment): Long {
         val id = dao.insertTreatment(treatment)

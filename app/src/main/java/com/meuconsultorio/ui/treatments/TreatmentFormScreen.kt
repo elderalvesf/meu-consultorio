@@ -60,6 +60,7 @@ fun TreatmentFormScreen(
     var tooth by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var costText by remember { mutableStateOf("") }
+    var priceText by remember { mutableStateOf("") }
     var status by remember { mutableStateOf(TreatmentStatus.EM_ANDAMENTO) }
     var date by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -85,6 +86,7 @@ fun TreatmentFormScreen(
                 tooth = t.tooth
                 description = t.description
                 costText = if (t.cost > 0) t.cost.toString() else ""
+                priceText = if (t.price > 0) t.price.toString() else ""
                 status = t.status
                 date = t.date
             }
@@ -128,6 +130,7 @@ fun TreatmentFormScreen(
                             tooth = tooth.trim(),
                             description = description.trim(),
                             cost = costText.replace(",", ".").toDoubleOrNull() ?: 0.0,
+                            price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
                             date = date,
                             status = status
                         )
@@ -184,13 +187,22 @@ fun TreatmentFormScreen(
                 }
             }
 
+            OutlinedTextField(
+                value = tooth,
+                onValueChange = { tooth = it },
+                label = { Text("Dente(s)") },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("ex: 14, 15") },
+                singleLine = true
+            )
+
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = tooth,
-                    onValueChange = { tooth = it },
-                    label = { Text("Dente(s)") },
+                    value = priceText,
+                    onValueChange = { priceText = it },
+                    label = { Text("Valor (R$)") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("ex: 14, 15") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
                 OutlinedTextField(

@@ -70,6 +70,7 @@ class FirestoreSync @Inject constructor(
             "tooth" to treatment.tooth,
             "description" to treatment.description,
             "cost" to treatment.cost,
+            "price" to treatment.price,
             "date" to treatment.date,
             "status" to treatment.status.name
         ))
@@ -200,6 +201,7 @@ class FirestoreSync @Inject constructor(
             tooth = getString("tooth") ?: "",
             description = getString("description") ?: "",
             cost = getDouble("cost") ?: 0.0,
+            price = getDouble("price") ?: 0.0,
             date = getLong("date") ?: System.currentTimeMillis(),
             status = try {
                 TreatmentStatus.valueOf(getString("status") ?: "")
