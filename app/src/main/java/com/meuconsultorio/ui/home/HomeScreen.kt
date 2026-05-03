@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
+import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.ui.util.isTablet
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,8 @@ fun HomeScreen(
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val totalPatients by patientViewModel.totalPatients.collectAsState()
+    val patients by patientViewModel.patients.collectAsState()
+    val patientMap = patients.associateBy { it.id }
     val todayAppointments by appointmentViewModel.todayAppointments.collectAsState()
     val tablet = isTablet()
     var showMenu by remember { mutableStateOf(false) }
@@ -141,7 +144,7 @@ fun HomeScreen(
                     Text("Consultas de hoje", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
-                    TodayAppointmentsPanel(todayAppointments)
+                    TodayAppointmentsPanel(todayAppointments, patientMap)
                 }
             }
         } else {
@@ -183,7 +186,10 @@ fun HomeScreen(
                     }
                 } else {
                     items(todayAppointments) { appointment ->
-                        TodayAppointmentCard(appointment = appointment)
+                        TodayAppointmentCard(
+                            appointment = appointment,
+                            patientName = patientMap[appointment.patientId]?.name
+                        )
                     }
                 }
             }
@@ -192,7 +198,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun TodayAppointmentsPanel(appointments: List<Appointment>) {
+fun TodayAppointmentsPanel(appointments: List<Appointment>, patientMap: Map<Long, Patient>) {
     if (appointments.isEmpty()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -206,7 +212,7 @@ fun TodayAppointmentsPanel(appointments: List<Appointment>) {
         }
     } else {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(appointments) { TodayAppointmentCard(it) }
+            items(appointments) { TodayAppointmentCard(it, patientMap[it.patientId]?.name) }
         }
     }
 }
@@ -237,7 +243,7 @@ fun StatCard(
 }
 
 @Composable
-fun TodayAppointmentCard(appointment: Appointment) {
+fun TodayAppointmentCard(appointment: Appointment, patientName: String? = null) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
         Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Surface(
@@ -253,7 +259,12 @@ fun TodayAppointmentCard(appointment: Appointment) {
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(appointment.procedureType, style = MaterialTheme.typography.titleMedium)
+                if (!patientName.isNullOrBlank()) {
+                    Text(patientName, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold)
+                }
+                Text(appointment.procedureType, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("${appointment.durationMinutes} min",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
