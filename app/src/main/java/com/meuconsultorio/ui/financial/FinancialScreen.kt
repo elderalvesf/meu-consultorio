@@ -86,24 +86,15 @@ fun FinancialScreen(
                 Text("Resumo financeiro", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
+                val totalRevenue = totalTreatmentPrice + totalAppointmentPrice
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FinancialCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.EventAvailable,
-                        label = "Total consultas",
-                        value = totalAppointmentPrice.toCurrency(),
-                        color = MaterialTheme.colorScheme.primary
-                    )
                     FinancialCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Filled.MedicalServices,
                         label = "Valor tratamentos",
-                        value = totalTreatmentPrice.toCurrency(),
+                        value = totalRevenue.toCurrency(),
                         color = MaterialTheme.colorScheme.secondary
                     )
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinancialCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Filled.MoneyOff,
@@ -111,14 +102,15 @@ fun FinancialScreen(
                         value = totalTreatmentCost.toCurrency(),
                         color = MaterialTheme.colorScheme.error
                     )
-                    FinancialCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.TrendingUp,
-                        label = "Lucro tratamentos",
-                        value = (totalTreatmentPrice - totalTreatmentCost).toCurrency(),
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
                 }
+                Spacer(Modifier.height(8.dp))
+                FinancialCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Filled.TrendingUp,
+                    label = "Lucro",
+                    value = (totalRevenue - totalTreatmentCost).toCurrency(),
+                    color = MaterialTheme.colorScheme.tertiary
+                )
             }
 
             item {
