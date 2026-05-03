@@ -26,7 +26,6 @@ import com.meuconsultorio.data.entity.*
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
-import com.meuconsultorio.viewmodel.PaymentViewModel
 import com.meuconsultorio.viewmodel.ProntuarioViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
 import java.io.File
@@ -39,22 +38,18 @@ fun PatientDetailScreen(
     onAddAppointment: () -> Unit,
     onEditAppointment: (Long) -> Unit,
     onAddTreatment: () -> Unit,
-    onAddPayment: () -> Unit,
     onEditTreatment: (Long) -> Unit,
-    onEditPayment: (Long) -> Unit,
     onOpenProntuario: (appointmentId: Long?) -> Unit,
     onEditProntuario: (entryId: Long) -> Unit,
     onBack: () -> Unit,
     patientViewModel: PatientViewModel = hiltViewModel(),
     appointmentViewModel: AppointmentViewModel = hiltViewModel(),
     treatmentViewModel: TreatmentViewModel = hiltViewModel(),
-    paymentViewModel: PaymentViewModel = hiltViewModel(),
     prontuarioViewModel: ProntuarioViewModel = hiltViewModel()
 ) {
     val patient by patientViewModel.selectedPatient.collectAsState()
     val appointments by appointmentViewModel.patientAppointments.collectAsState()
     val treatments by treatmentViewModel.patientTreatments.collectAsState()
-    val payments by paymentViewModel.patientPayments.collectAsState()
     val totalCost by treatmentViewModel.patientTotalCost.collectAsState()
     val totalPrice by treatmentViewModel.patientTotalPrice.collectAsState()
     val prontuarioEntries by prontuarioViewModel.patientEntries.collectAsState()
@@ -66,7 +61,6 @@ fun PatientDetailScreen(
         patientViewModel.loadPatient(patientId)
         appointmentViewModel.loadPatientAppointments(patientId)
         treatmentViewModel.loadPatientTreatments(patientId)
-        paymentViewModel.loadPatientPayments(patientId)
         prontuarioViewModel.loadPatientEntries(patientId)
     }
 
@@ -116,8 +110,6 @@ fun PatientDetailScreen(
                         text = { Text("Prontuário (${appointments.size})") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
                         text = { Text("Tratamentos (${treatments.size})") })
-                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 },
-                        text = { Text("Pagamentos (${payments.size})") })
                 }
             }
 
@@ -166,28 +158,6 @@ fun PatientDetailScreen(
                             TreatmentItemCard(
                                 treatment = treatment,
                                 onEdit = { onEditTreatment(treatment.id) },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-                2 -> {
-                    item {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-                            FilledTonalButton(onClick = onAddPayment) {
-                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Novo pagamento")
-                            }
-                        }
-                    }
-                    if (payments.isEmpty()) {
-                        item { EmptyState("Nenhum pagamento registrado", Modifier.height(200.dp)) }
-                    } else {
-                        items(payments) { payment ->
-                            PaymentItemCard(
-                                payment = payment,
-                                onEdit = { onEditPayment(payment.id) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }

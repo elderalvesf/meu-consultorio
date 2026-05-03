@@ -154,9 +154,7 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                     onAddAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(patientId = patientId)) },
                     onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
                     onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(patientId = patientId)) },
-                    onAddPayment = { navController.navigate(Screen.PaymentForm.createRoute(patientId = patientId)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it, patientId = patientId)) },
-                    onEditPayment = { navController.navigate(Screen.PaymentForm.createRoute(paymentId = it, patientId = patientId)) },
                     onOpenProntuario = { appointmentId ->
                         navController.navigate(Screen.ProntuarioForm.createRoute(patientId, appointmentId = appointmentId))
                     },
