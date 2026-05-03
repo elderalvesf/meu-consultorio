@@ -110,6 +110,29 @@ class AppointmentViewModel @Inject constructor(
         }
     }
 
+    fun pullFromCalendar() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val synced = allAppointments.value.filter { it.calendarEventId > 0L }
+            synced.forEach { appointment ->
+                val snapshot = calendarSync.readEvent(appointment.calendarEventId)
+                if (snapshot == null) {
+                    // Evento deletado no calendário — desvincula
+                    repository.updateAppointment(appointment.copy(calendarEventId = -1L))
+                } else if (snapshot.dtStart != appointment.dateTime) {
+                    // Horário alterado no calendário — atualiza a consulta
+                    val newDuration = ((snapshot.dtEnd - snapshot.dtStart) / 60_000L)
+                        .toInt().coerceAtLeast(15)
+                    repository.updateAppointment(
+                        appointment.copy(
+                            dateTime = snapshot.dtStart,
+                            durationMinutes = newDuration
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     fun deleteAppointment(appointment: Appointment) {
         viewModelScope.launch {
             if (appointment.calendarEventId > 0L) {

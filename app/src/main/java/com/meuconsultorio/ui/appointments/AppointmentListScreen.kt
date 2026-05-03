@@ -36,6 +36,8 @@ fun AppointmentListScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val todayAppointments by viewModel.todayAppointments.collectAsState()
 
+    LaunchedEffect(Unit) { viewModel.pullFromCalendar() }
+
     var filterStatus by remember { mutableStateOf<AppointmentStatus?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
 
