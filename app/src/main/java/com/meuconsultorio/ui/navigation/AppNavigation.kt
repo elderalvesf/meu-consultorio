@@ -216,8 +216,6 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
             }
             composable(Screen.Financial.route) {
                 FinancialScreen(
-                    onAddPayment = { navController.navigate(Screen.PaymentForm.createRoute()) },
-                    onEditPayment = { navController.navigate(Screen.PaymentForm.createRoute(paymentId = it)) },
                     onPatientClick = { navController.navigate(Screen.PatientDetail.createRoute(it)) }
                 )
             }
