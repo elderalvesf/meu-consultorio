@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.ui.util.isTablet
+import androidx.compose.ui.graphics.Color
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.AuthViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
