@@ -25,6 +25,7 @@ data class Appointment(
     val procedureType: String,
     val status: AppointmentStatus = AppointmentStatus.AGENDADA,
     val notes: String = "",
+    val price: Double = 0.0,
     val createdAt: Long = System.currentTimeMillis(),
     val calendarEventId: Long = -1L
 )

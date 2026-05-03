@@ -20,6 +20,7 @@ class AppointmentRepository @Inject constructor(
     fun getAppointmentById(id: Long): Flow<Appointment?> = dao.getAppointmentById(id)
     fun countAppointmentsToday(startOfDay: Long, endOfDay: Long): Flow<Int> =
         dao.countAppointmentsToday(startOfDay, endOfDay, listOf(AppointmentStatus.CANCELADA))
+    fun getTotalPrice(): Flow<Double?> = dao.getTotalPrice()
 
     suspend fun insertAppointment(appointment: Appointment): Long {
         val id = dao.insertAppointment(appointment)

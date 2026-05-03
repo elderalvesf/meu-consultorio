@@ -26,6 +26,10 @@ class AppointmentViewModel @Inject constructor(
     val allAppointments: StateFlow<List<Appointment>> = repository.getAllAppointments()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val totalAppointmentPrice: StateFlow<Double> = repository.getTotalPrice()
+        .map { it ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     val todayAppointments: StateFlow<List<Appointment>> = _selectedDate.flatMapLatest { date ->
         val (start, end) = getDayRange(date)
         repository.getAppointmentsByDay(start, end)

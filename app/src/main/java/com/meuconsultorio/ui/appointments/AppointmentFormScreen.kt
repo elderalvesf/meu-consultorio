@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +65,7 @@ fun AppointmentFormScreen(
     var status by remember { mutableStateOf(AppointmentStatus.AGENDADA) }
     var durationMinutes by remember { mutableIntStateOf(60) }
     var notes by remember { mutableStateOf("") }
+    var priceText by remember { mutableStateOf("") }
     var dateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
 
@@ -128,6 +131,7 @@ fun AppointmentFormScreen(
                 status = appt.status
                 durationMinutes = appt.durationMinutes
                 notes = appt.notes
+                priceText = if (appt.price > 0) appt.price.toString() else ""
                 dateTime = appt.dateTime
                 existingCalendarEventId = appt.calendarEventId
                 syncWithCalendar = appt.calendarEventId > 0L
@@ -197,6 +201,7 @@ fun AppointmentFormScreen(
             procedureType = procedureType,
             status = status,
             notes = notes,
+            price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
             calendarEventId = existingCalendarEventId
         )
         val patientName = patients.find { it.id == selectedPatientId }?.name ?: ""
@@ -388,13 +393,23 @@ fun AppointmentFormScreen(
                 }
             }
 
-            OutlinedTextField(
-                value = durationMinutes.toString(),
-                onValueChange = { it.toIntOrNull()?.let { v -> if (v in 10..480) durationMinutes = v } },
-                label = { Text("Duração (minutos)") },
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { Text("min", style = MaterialTheme.typography.labelMedium) }
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = durationMinutes.toString(),
+                    onValueChange = { it.toIntOrNull()?.let { v -> if (v in 10..480) durationMinutes = v } },
+                    label = { Text("Duração (min)") },
+                    modifier = Modifier.weight(1f),
+                    trailingIcon = { Text("min", style = MaterialTheme.typography.labelMedium) }
+                )
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { priceText = it },
+                    label = { Text("Valor (R$)") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+            }
 
             OutlinedTextField(
                 value = notes,

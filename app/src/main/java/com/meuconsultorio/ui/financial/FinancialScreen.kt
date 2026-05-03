@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Payment
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.ui.components.*
+import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.PaymentViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
@@ -29,7 +30,8 @@ fun FinancialScreen(
     onPatientClick: (Long) -> Unit,
     viewModel: PaymentViewModel = hiltViewModel(),
     patientViewModel: PatientViewModel = hiltViewModel(),
-    treatmentViewModel: TreatmentViewModel = hiltViewModel()
+    treatmentViewModel: TreatmentViewModel = hiltViewModel(),
+    appointmentViewModel: AppointmentViewModel = hiltViewModel()
 ) {
     val payments by viewModel.allPayments.collectAsState()
 
@@ -37,6 +39,7 @@ fun FinancialScreen(
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
     val totalTreatmentPrice by treatmentViewModel.totalTreatmentPrice.collectAsState()
+    val totalAppointmentPrice by appointmentViewModel.totalAppointmentPrice.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var filterPaid by remember { mutableStateOf<Boolean?>(null) }
@@ -82,6 +85,23 @@ fun FinancialScreen(
             item {
                 Text("Resumo financeiro", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.EventAvailable,
+                        label = "Total consultas",
+                        value = totalAppointmentPrice.toCurrency(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.MedicalServices,
+                        label = "Valor tratamentos",
+                        value = totalTreatmentPrice.toCurrency(),
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinancialCard(
