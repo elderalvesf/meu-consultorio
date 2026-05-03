@@ -11,7 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,6 @@ import com.meuconsultorio.ui.util.isTablet
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.AuthViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
-import com.meuconsultorio.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,13 +33,10 @@ fun HomeScreen(
     onNavigateToAppointmentForm: () -> Unit,
     patientViewModel: PatientViewModel = hiltViewModel(),
     appointmentViewModel: AppointmentViewModel = hiltViewModel(),
-    paymentViewModel: PaymentViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val totalPatients by patientViewModel.totalPatients.collectAsState()
     val todayAppointments by appointmentViewModel.todayAppointments.collectAsState()
-    val totalReceived by paymentViewModel.totalReceived.collectAsState()
-    val monthReceived by paymentViewModel.monthReceived.collectAsState()
     val tablet = isTablet()
     var showMenu by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
@@ -129,16 +125,6 @@ fun HomeScreen(
                             todayAppointments.size.toString(), MaterialTheme.colorScheme.secondary, onNavigateToAppointments
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatCard(
-                            Modifier.weight(1f), Icons.Filled.AttachMoney, "Mês atual",
-                            monthReceived.toCurrency(), MaterialTheme.colorScheme.tertiary, {}
-                        )
-                        StatCard(
-                            Modifier.weight(1f), Icons.Filled.Savings, "Total recebido",
-                            totalReceived.toCurrency(), Color(0xFF7B1FA2), {}
-                        )
-                    }
                     OutlinedButton(
                         onClick = onNavigateToAppointmentForm,
                         modifier = Modifier.fillMaxWidth()
@@ -173,13 +159,6 @@ fun HomeScreen(
                             totalPatients.toString(), MaterialTheme.colorScheme.primary, onNavigateToPatients)
                         StatCard(Modifier.weight(1f), Icons.Filled.CalendarMonth, "Hoje",
                             todayAppointments.size.toString(), MaterialTheme.colorScheme.secondary, onNavigateToAppointments)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatCard(Modifier.weight(1f), Icons.Filled.AttachMoney, "Mês atual",
-                            monthReceived.toCurrency(), MaterialTheme.colorScheme.tertiary, {})
-                        StatCard(Modifier.weight(1f), Icons.Filled.Savings, "Total recebido",
-                            totalReceived.toCurrency(), Color(0xFF7B1FA2), {})
                     }
                 }
 
