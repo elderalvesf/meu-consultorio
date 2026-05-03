@@ -33,7 +33,6 @@ fun FinancialScreen(
 ) {
     val payments by viewModel.allPayments.collectAsState()
     val totalReceived by viewModel.totalReceived.collectAsState()
-    val totalPending by viewModel.totalPending.collectAsState()
     val monthReceived by viewModel.monthReceived.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
@@ -95,27 +94,10 @@ fun FinancialScreen(
                     )
                     FinancialCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.Pending,
-                        label = "Pendente",
-                        value = totalPending.toCurrency(),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FinancialCard(
-                        modifier = Modifier.weight(1f),
                         icon = Icons.Filled.CalendarMonth,
                         label = "Recebido este mês",
                         value = monthReceived.toCurrency(),
                         color = MaterialTheme.colorScheme.primary
-                    )
-                    FinancialCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.MedicalServices,
-                        label = "Valor tratamentos",
-                        value = totalTreatmentPrice.toCurrency(),
-                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Spacer(Modifier.height(8.dp))
