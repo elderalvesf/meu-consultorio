@@ -38,6 +38,7 @@ fun FinancialScreen(
     val patients by patientViewModel.patients.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
+    val totalTreatmentPrice by treatmentViewModel.totalTreatmentPrice.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var filterPaid by remember { mutableStateOf<Boolean?>(null) }
@@ -112,9 +113,26 @@ fun FinancialScreen(
                     FinancialCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Filled.MedicalServices,
-                        label = "Total em tratamentos",
-                        value = totalTreatmentCost.toCurrency(),
+                        label = "Valor tratamentos",
+                        value = totalTreatmentPrice.toCurrency(),
                         color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.MoneyOff,
+                        label = "Custo materiais",
+                        value = totalTreatmentCost.toCurrency(),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    FinancialCard(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Filled.TrendingUp,
+                        label = "Lucro tratamentos",
+                        value = (totalTreatmentPrice - totalTreatmentCost).toCurrency(),
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
@@ -284,10 +302,21 @@ fun TreatmentFinancialCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(treatment.cost.toCurrency(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary)
+                if (treatment.price > 0)
+                    Text(treatment.price.toCurrency(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary)
+                if (treatment.cost > 0)
+                    Text("Custo: ${treatment.cost.toCurrency()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (treatment.price > 0 || treatment.cost > 0)
+                    Text("Lucro: ${(treatment.price - treatment.cost).toCurrency()}",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary)
+                Spacer(Modifier.height(4.dp))
                 Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
                     Text(treatment.status.label,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

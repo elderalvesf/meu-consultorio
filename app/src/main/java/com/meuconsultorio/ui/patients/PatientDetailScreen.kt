@@ -56,6 +56,7 @@ fun PatientDetailScreen(
     val treatments by treatmentViewModel.patientTreatments.collectAsState()
     val payments by paymentViewModel.patientPayments.collectAsState()
     val totalCost by treatmentViewModel.patientTotalCost.collectAsState()
+    val totalPrice by treatmentViewModel.patientTotalPrice.collectAsState()
     val prontuarioEntries by prontuarioViewModel.patientEntries.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -106,7 +107,7 @@ fun PatientDetailScreen(
 
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             item {
-                PatientInfoCard(patient = patient!!, totalCost = totalCost)
+                PatientInfoCard(patient = patient!!, totalCost = totalCost, totalPrice = totalPrice)
             }
 
             item {
@@ -361,7 +362,7 @@ fun InlineProntuarioEntry(
 }
 
 @Composable
-fun PatientInfoCard(patient: com.meuconsultorio.data.entity.Patient, totalCost: Double) {
+fun PatientInfoCard(patient: com.meuconsultorio.data.entity.Patient, totalCost: Double, totalPrice: Double = 0.0) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         shape = RoundedCornerShape(16.dp),
@@ -389,8 +390,14 @@ fun PatientInfoCard(patient: com.meuconsultorio.data.entity.Patient, totalCost: 
                 if (patient.email.isNotBlank()) InfoRow(Icons.Filled.Email, patient.email)
                 if (patient.cpf.isNotBlank()) InfoRow(Icons.Filled.Badge, patient.cpf)
                 if (patient.address.isNotBlank()) InfoRow(Icons.Filled.LocationOn, patient.address)
+                if (totalPrice > 0) {
+                    InfoRow(Icons.Filled.AttachMoney, "Valor tratamentos: ${totalPrice.toCurrency()}")
+                }
                 if (totalCost > 0) {
-                    InfoRow(Icons.Filled.AttachMoney, "Total em tratamentos: ${totalCost.toCurrency()}")
+                    InfoRow(Icons.Filled.MoneyOff, "Custo materiais: ${totalCost.toCurrency()}")
+                }
+                if (totalPrice > 0 || totalCost > 0) {
+                    InfoRow(Icons.Filled.TrendingUp, "Lucro: ${(totalPrice - totalCost).toCurrency()}")
                 }
             }
 
@@ -424,8 +431,12 @@ fun TreatmentItemCard(treatment: Treatment, onEdit: () -> Unit, modifier: Modifi
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(treatment.date.toFormattedDate(), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(treatment.cost.toCurrency(), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                if (treatment.price > 0)
+                    Text("Valor: ${treatment.price.toCurrency()}", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                if (treatment.cost > 0)
+                    Text("Custo: ${treatment.cost.toCurrency()}", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {

@@ -4,19 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.meuconsultorio.data.database.AppDatabase
 import com.meuconsultorio.data.firebase.FirestoreSync
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestoreSync: FirestoreSync
+    private val firestoreSync: FirestoreSync,
+    private val db: AppDatabase
 ) : ViewModel() {
 
     sealed class AuthState {
@@ -71,5 +75,8 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun signOut() = auth.signOut()
+    fun signOut() {
+        auth.signOut()
+        viewModelScope.launch { withContext(Dispatchers.IO) { db.clearAllTables() } }
+    }
 }

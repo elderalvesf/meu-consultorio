@@ -25,13 +25,15 @@ class FirestoreSync @Inject constructor(
     private val paymentDao: PaymentDao,
     private val prontuarioDao: ProntuarioDao
 ) {
-    private val isLoggedIn get() = auth.currentUser != null
+    private val uid get() = auth.currentUser?.uid
+    private val isLoggedIn get() = uid != null
 
-    private val colPatients get() = firestore.collection("patients")
-    private val colAppointments get() = firestore.collection("appointments")
-    private val colTreatments get() = firestore.collection("treatments")
-    private val colPayments get() = firestore.collection("payments")
-    private val colProntuario get() = firestore.collection("prontuario_entries")
+    private fun userDoc() = firestore.collection("users").document(uid!!)
+    private val colPatients get() = userDoc().collection("patients")
+    private val colAppointments get() = userDoc().collection("appointments")
+    private val colTreatments get() = userDoc().collection("treatments")
+    private val colPayments get() = userDoc().collection("payments")
+    private val colProntuario get() = userDoc().collection("prontuario_entries")
 
     fun pushPatient(patient: Patient) {
         if (!isLoggedIn) return
@@ -68,6 +70,7 @@ class FirestoreSync @Inject constructor(
             "tooth" to treatment.tooth,
             "description" to treatment.description,
             "cost" to treatment.cost,
+            "price" to treatment.price,
             "date" to treatment.date,
             "status" to treatment.status.name
         ))
@@ -198,6 +201,7 @@ class FirestoreSync @Inject constructor(
             tooth = getString("tooth") ?: "",
             description = getString("description") ?: "",
             cost = getDouble("cost") ?: 0.0,
+            price = getDouble("price") ?: 0.0,
             date = getLong("date") ?: System.currentTimeMillis(),
             status = try {
                 TreatmentStatus.valueOf(getString("status") ?: "")

@@ -24,6 +24,7 @@ data class Treatment(
     val tooth: String = "",
     val description: String = "",
     val cost: Double = 0.0,
+    val price: Double = 0.0,
     val date: Long = System.currentTimeMillis(),
     val status: TreatmentStatus = TreatmentStatus.EM_ANDAMENTO
 )

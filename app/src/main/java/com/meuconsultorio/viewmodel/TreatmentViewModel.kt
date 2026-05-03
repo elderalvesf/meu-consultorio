@@ -21,11 +21,18 @@ class TreatmentViewModel @Inject constructor(
         .map { it ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
+    val totalTreatmentPrice: StateFlow<Double> = repository.getTotalPrice()
+        .map { it ?: 0.0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     private val _patientTreatments = MutableStateFlow<List<Treatment>>(emptyList())
     val patientTreatments: StateFlow<List<Treatment>> = _patientTreatments.asStateFlow()
 
     private val _patientTotalCost = MutableStateFlow(0.0)
     val patientTotalCost: StateFlow<Double> = _patientTotalCost.asStateFlow()
+
+    private val _patientTotalPrice = MutableStateFlow(0.0)
+    val patientTotalPrice: StateFlow<Double> = _patientTotalPrice.asStateFlow()
 
     private val _selectedTreatment = MutableStateFlow<Treatment?>(null)
     val selectedTreatment: StateFlow<Treatment?> = _selectedTreatment.asStateFlow()
@@ -39,6 +46,11 @@ class TreatmentViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getTotalCostByPatient(patientId).collect {
                 _patientTotalCost.value = it ?: 0.0
+            }
+        }
+        viewModelScope.launch {
+            repository.getTotalPriceByPatient(patientId).collect {
+                _patientTotalPrice.value = it ?: 0.0
             }
         }
     }

@@ -110,4 +110,31 @@ class GoogleCalendarSync @Inject constructor(
             false
         }
     }
+
+    data class CalendarEventSnapshot(val dtStart: Long, val dtEnd: Long)
+
+    fun readEvent(eventId: Long): CalendarEventSnapshot? {
+        if (eventId <= 0L) return null
+        val projection = arrayOf(
+            CalendarContract.Events.DTSTART,
+            CalendarContract.Events.DTEND,
+            CalendarContract.Events.DELETED
+        )
+        return try {
+            val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
+            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (!cursor.moveToFirst()) return null
+                val deleted = cursor.getInt(cursor.getColumnIndexOrThrow(CalendarContract.Events.DELETED)) != 0
+                if (deleted) return null
+                CalendarEventSnapshot(
+                    dtStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)),
+                    dtEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Events.DTEND))
+                )
+            }
+        } catch (e: SecurityException) {
+            null
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
