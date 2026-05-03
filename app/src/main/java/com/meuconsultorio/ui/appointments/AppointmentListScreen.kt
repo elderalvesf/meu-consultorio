@@ -1,9 +1,11 @@
 package com.meuconsultorio.ui.appointments
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,8 +42,15 @@ fun AppointmentListScreen(
 
     LaunchedEffect(Unit) { viewModel.pullFromCalendar() }
 
+    var weeklyView by remember { mutableStateOf(false) }
     var filterStatus by remember { mutableStateOf<AppointmentStatus?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
+
+    val dayKeyFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val appointmentsByDay = remember(allAppointments) {
+        allAppointments.groupBy { dayKeyFmt.format(Date(it.dateTime)) }
+            .mapValues { it.value.size }
+    }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
 
@@ -49,7 +60,6 @@ fun AppointmentListScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { utcMillis ->
-                        // selectedMillis é UTC midnight — converter para local noon do mesmo dia
                         val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = utcMillis }
                         val localCal = Calendar.getInstance().apply {
                             set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
@@ -76,7 +86,6 @@ fun AppointmentListScreen(
     }
 
     val patientMap = patients.associateBy { it.id }
-    val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date(selectedDate))
 
     Scaffold(
         topBar = { AppTopBar(title = "Agenda") },
@@ -87,34 +96,101 @@ fun AppointmentListScreen(
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+
+            // Toggle Dia / Semana
+            Row(
+                Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Row(
-                    Modifier.padding(12.dp).fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("Data selecionada", style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                        Text(formattedDate, style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold)
-                        Text("${displayedAppointments.size} consulta(s)", style = MaterialTheme.typography.bodySmall)
+                SingleChoiceSegmentedButtonRow {
+                    SegmentedButton(
+                        selected = !weeklyView,
+                        onClick = { weeklyView = false },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        label = { Text("Dia") }
+                    )
+                    SegmentedButton(
+                        selected = weeklyView,
+                        onClick = { weeklyView = true },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        label = { Text("Semana") }
+                    )
+                }
+            }
+
+            if (weeklyView) {
+                WeekStrip(
+                    selectedDate = selectedDate,
+                    appointmentsByDay = appointmentsByDay,
+                    onDaySelected = { viewModel.selectDate(it) },
+                    onPrevWeek = {
+                        viewModel.selectDate(
+                            Calendar.getInstance().apply {
+                                timeInMillis = selectedDate
+                                add(Calendar.DAY_OF_MONTH, -7)
+                            }.timeInMillis
+                        )
+                    },
+                    onNextWeek = {
+                        viewModel.selectDate(
+                            Calendar.getInstance().apply {
+                                timeInMillis = selectedDate
+                                add(Calendar.DAY_OF_MONTH, 7)
+                            }.timeInMillis
+                        )
                     }
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = "Selecionar data",
-                            tint = MaterialTheme.colorScheme.primary)
+                )
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Row(
+                        Modifier.padding(12.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                "Data selecionada",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                selectedDate.toFormattedDate(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text("${displayedAppointments.size} consulta(s)", style = MaterialTheme.typography.bodySmall)
+                        }
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(
+                                Icons.Filled.CalendarMonth,
+                                contentDescription = "Selecionar data",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
 
+            // Cabeçalho do dia selecionado na visão semanal
+            if (weeklyView) {
+                val dayHeaderFmt = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("pt", "BR"))
+                Text(
+                    dayHeaderFmt.format(Date(selectedDate)).replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
             ScrollableTabRow(
-                selectedTabIndex = AppointmentStatus.entries.indexOfFirst { it == filterStatus }.let {
-                    if (it == -1) 0 else it + 1
-                },
+                selectedTabIndex = AppointmentStatus.entries.indexOfFirst { it == filterStatus }
+                    .let { if (it == -1) 0 else it + 1 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Tab(selected = filterStatus == null, onClick = { filterStatus = null },
@@ -149,6 +225,124 @@ fun AppointmentListScreen(
             }
         }
     }
+}
+
+@Composable
+fun WeekStrip(
+    selectedDate: Long,
+    appointmentsByDay: Map<String, Int>,
+    onDaySelected: (Long) -> Unit,
+    onPrevWeek: () -> Unit,
+    onNextWeek: () -> Unit
+) {
+    val dayKeyFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val dayNameFmt = remember { SimpleDateFormat("EEE", Locale("pt", "BR")) }
+    val dayNumFmt = remember { SimpleDateFormat("d", Locale.getDefault()) }
+    val monthYearFmt = remember { SimpleDateFormat("MMMM yyyy", Locale("pt", "BR")) }
+
+    val weekStart = remember(selectedDate) { weekStart(selectedDate) }
+    val days = remember(weekStart) {
+        (0..6).map { i ->
+            Calendar.getInstance().apply {
+                timeInMillis = weekStart
+                add(Calendar.DAY_OF_MONTH, i)
+            }.timeInMillis
+        }
+    }
+
+    val selectedKey = dayKeyFmt.format(Date(selectedDate))
+    val todayKey = dayKeyFmt.format(Date())
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onPrevWeek) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "Semana anterior")
+            }
+            Text(
+                monthYearFmt.format(Date(days[3])).replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = onNextWeek) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "Próxima semana")
+            }
+        }
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            days.forEach { dayMillis ->
+                val key = dayKeyFmt.format(Date(dayMillis))
+                val isSelected = key == selectedKey
+                val isToday = key == todayKey
+                val count = appointmentsByDay[key] ?: 0
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else Color.Transparent
+                        )
+                        .clickable { onDaySelected(dayMillis) }
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        dayNameFmt.format(Date(dayMillis)).uppercase().take(3),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                    Text(
+                        dayNumFmt.format(Date(dayMillis)),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isToday -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    Box(
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when {
+                                    count == 0 -> Color.Transparent
+                                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
+                            )
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(Modifier.padding(top = 8.dp))
+    }
+}
+
+private fun weekStart(dateMillis: Long): Long {
+    val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+    val dow = cal.get(Calendar.DAY_OF_WEEK)
+    val daysFromMonday = if (dow == Calendar.SUNDAY) 6 else dow - Calendar.MONDAY
+    cal.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
+    cal.set(Calendar.HOUR_OF_DAY, 12)
+    cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+    return cal.timeInMillis
 }
 
 @Composable
@@ -219,18 +413,14 @@ fun AppointmentCard(
             if (appointment.calendarEventId > 0L) {
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.CalendarMonth,
+                    Icon(Icons.Filled.CalendarMonth,
                         contentDescription = "Sincronizado com Google Calendar",
                         modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                        tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
-                    Text(
-                        "Google Calendar",
+                    Text("Google Calendar",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
