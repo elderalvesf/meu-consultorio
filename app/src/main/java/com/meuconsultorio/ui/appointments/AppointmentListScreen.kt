@@ -217,6 +217,7 @@ fun AppointmentListScreen(
                             appointment = appointment,
                             patientName = patient?.name ?: "Paciente desconhecido",
                             onEdit = { onEditAppointment(appointment.id) },
+                            onDelete = { viewModel.deleteAppointment(appointment) },
                             onPatientClick = { patient?.let { onPatientClick(it.id) } },
                             onStatusChange = { status -> viewModel.updateStatus(appointment, status) }
                         )
@@ -350,10 +351,26 @@ fun AppointmentCard(
     appointment: Appointment,
     patientName: String,
     onEdit: () -> Unit,
+    onDelete: () -> Unit,
     onPatientClick: () -> Unit,
     onStatusChange: (AppointmentStatus) -> Unit
 ) {
     var showStatusMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir consulta") },
+            text = { Text("Deseja excluir esta consulta? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
 
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Column(Modifier.padding(12.dp)) {
@@ -402,6 +419,12 @@ fun AppointmentCard(
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Excluir",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error)
                 }
             }
 

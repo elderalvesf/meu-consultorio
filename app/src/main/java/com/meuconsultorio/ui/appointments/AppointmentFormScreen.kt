@@ -81,6 +81,7 @@ fun AppointmentFormScreen(
     var showPatientDropdown by remember { mutableStateOf(false) }
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     var patientError by remember { mutableStateOf(false) }
     var procedureError by remember { mutableStateOf(false) }
@@ -263,11 +264,37 @@ fun AppointmentFormScreen(
         )
     }
 
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir consulta") },
+            text = { Text("Deseja excluir esta consulta? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    selectedAppointment?.let { viewModel.deleteAppointment(it) }
+                    onBack()
+                }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             AppTopBar(
                 title = if (appointmentId != null) "Editar Consulta" else "Nova Consulta",
-                onBack = onBack
+                onBack = onBack,
+                actions = {
+                    if (appointmentId != null) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Excluir consulta",
+                                tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
             )
         },
         floatingActionButton = {
