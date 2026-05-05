@@ -69,6 +69,7 @@ fun AppointmentFormScreen(
     var durationMinutes by remember { mutableIntStateOf(60) }
     var notes by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
+    var isPaid by remember { mutableStateOf(false) }
     var dateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
 
@@ -140,6 +141,7 @@ fun AppointmentFormScreen(
                 durationMinutes = appt.durationMinutes
                 notes = appt.notes
                 priceText = if (appt.price > 0) appt.price.toString() else ""
+                isPaid = appt.isPaid
                 dateTime = appt.dateTime
                 existingCalendarEventId = appt.calendarEventId
                 syncWithCalendar = appt.calendarEventId > 0L
@@ -210,6 +212,7 @@ fun AppointmentFormScreen(
             status = status,
             notes = notes,
             price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
+            isPaid = isPaid,
             calendarEventId = existingCalendarEventId
         )
         val patientName = patients.find { it.id == selectedPatientId }?.name ?: ""
@@ -510,6 +513,20 @@ fun AppointmentFormScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
+            }
+
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Consulta paga", style = MaterialTheme.typography.bodyMedium)
+                    Text("Valor refletido no financeiro ao marcar",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = isPaid, onCheckedChange = { isPaid = it })
             }
 
             OutlinedTextField(

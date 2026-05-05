@@ -44,7 +44,7 @@ fun FinancialScreen(
 
     if (showRevenueDetail) {
         val concludedTreatments = allTreatments.filter { it.status == TreatmentStatus.CONCLUIDO && it.price > 0 }
-        val paidAppointments = allAppointments.filter { it.price > 0 }
+        val paidAppointments = allAppointments.filter { it.isPaid && it.price > 0 }
 
         ModalBottomSheet(onDismissRequest = { showRevenueDetail = false }) {
             Column(

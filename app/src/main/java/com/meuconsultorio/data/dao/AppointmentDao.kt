@@ -29,7 +29,7 @@ interface AppointmentDao {
     @Query("SELECT COUNT(*) FROM appointments WHERE status = :status")
     fun countAppointmentsByStatus(status: AppointmentStatus): Flow<Int>
 
-    @Query("SELECT SUM(price) FROM appointments")
+    @Query("SELECT SUM(price) FROM appointments WHERE isPaid = 1")
     fun getTotalPrice(): Flow<Double?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -59,6 +59,7 @@ class FirestoreSync @Inject constructor(
             "status" to appointment.status.name,
             "notes" to appointment.notes,
             "price" to appointment.price,
+            "isPaid" to appointment.isPaid,
             "createdAt" to appointment.createdAt
         ))
     }
@@ -190,6 +191,7 @@ class FirestoreSync @Inject constructor(
             } catch (_: Exception) { AppointmentStatus.AGENDADA },
             notes = getString("notes") ?: "",
             price = getDouble("price") ?: 0.0,
+            isPaid = getBoolean("isPaid") ?: false,
             createdAt = getLong("createdAt") ?: System.currentTimeMillis()
         )
     }
