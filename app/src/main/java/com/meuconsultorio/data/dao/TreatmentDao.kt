@@ -22,10 +22,10 @@ interface TreatmentDao {
     @Query("SELECT SUM(cost) FROM treatments")
     fun getTotalCost(): Flow<Double?>
 
-    @Query("SELECT SUM(price) FROM treatments WHERE patientId = :patientId")
+    @Query("SELECT SUM(price) FROM treatments WHERE patientId = :patientId AND status = 'CONCLUIDO'")
     fun getTotalPriceByPatient(patientId: Long): Flow<Double?>
 
-    @Query("SELECT SUM(price) FROM treatments")
+    @Query("SELECT SUM(price) FROM treatments WHERE status = 'CONCLUIDO'")
     fun getTotalPrice(): Flow<Double?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
