@@ -44,6 +44,8 @@ val dentalProcedures = listOf(
     "Ortodontia (aparelho)",
     "Periodontia (gengiva)",
     "Radiografia",
+    "Retorno 10 dias DTM",
+    "Retorno 15 dias DTM",
     "Urgência / Dor",
     "Retorno",
     "Outro"
