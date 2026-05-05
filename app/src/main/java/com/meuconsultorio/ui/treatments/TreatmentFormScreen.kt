@@ -68,6 +68,7 @@ fun TreatmentFormScreen(
     var costText by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var sessionsText by remember { mutableStateOf("") }
+    var isLaserterapia by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf(TreatmentStatus.EM_ANDAMENTO) }
     var date by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -98,6 +99,7 @@ fun TreatmentFormScreen(
                 costText = if (t.cost > 0) t.cost.toString() else ""
                 priceText = if (t.price > 0) t.price.toString() else ""
                 sessionsText = if (t.sessions > 0) t.sessions.toString() else ""
+                isLaserterapia = t.procedure.contains("Laserterapia", ignoreCase = true)
                 status = t.status
                 date = t.date
             }
@@ -191,7 +193,7 @@ fun TreatmentFormScreen(
                             description = description.trim(),
                             cost = costText.replace(",", ".").toDoubleOrNull() ?: 0.0,
                             price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
-                            sessions = if (procedure == PROCEDURE_LASERTERAPIA) sessionsText.toIntOrNull() ?: 0 else 0,
+                            sessions = if (isLaserterapia) sessionsText.toIntOrNull() ?: 0 else 0,
                             date = date,
                             status = status
                         )
@@ -248,7 +250,13 @@ fun TreatmentFormScreen(
                     dentalTreatments.sorted().forEach { proc ->
                         DropdownMenuItem(
                             text = { Text(proc) },
-                            onClick = { procedure = proc; procedureError = false; showProcedureDropdown = false }
+                            onClick = {
+                                procedure = proc
+                                isLaserterapia = proc.contains("Laserterapia", ignoreCase = true)
+                                if (!isLaserterapia) sessionsText = ""
+                                procedureError = false
+                                showProcedureDropdown = false
+                            }
                         )
                     }
                 }
@@ -282,7 +290,7 @@ fun TreatmentFormScreen(
                 )
             }
 
-            if (procedure == PROCEDURE_LASERTERAPIA) {
+            if (isLaserterapia) {
                 OutlinedTextField(
                     value = sessionsText,
                     onValueChange = { sessionsText = it },
