@@ -245,6 +245,21 @@ fun TreatmentFinancialCard(
     onStatusChange: (TreatmentStatus) -> Unit
 ) {
     var showStatusMenu by remember { mutableStateOf(false) }
+    var pendingStatus by remember { mutableStateOf<TreatmentStatus?>(null) }
+
+    pendingStatus?.let { status ->
+        AlertDialog(
+            onDismissRequest = { pendingStatus = null },
+            title = { Text("Alterar status") },
+            text = { Text("Alterar status de \"${treatment.status.label}\" para \"${status.label}\"?") },
+            confirmButton = {
+                TextButton(onClick = { onStatusChange(status); pendingStatus = null }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingStatus = null }) { Text("Cancelar") }
+            }
+        )
+    }
 
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -299,7 +314,7 @@ fun TreatmentFinancialCard(
                         TreatmentStatus.entries.forEach { status ->
                             DropdownMenuItem(
                                 text = { Text(status.label) },
-                                onClick = { onStatusChange(status); showStatusMenu = false }
+                                onClick = { pendingStatus = status; showStatusMenu = false }
                             )
                         }
                     }
