@@ -22,9 +22,12 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
+import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.ui.components.AppTopBar
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import java.util.*
 
 val dentalProcedures = listOf(
@@ -82,6 +85,10 @@ fun AppointmentFormScreen(
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showNewPatientDialog by remember { mutableStateOf(false) }
+    var newPatientName by remember { mutableStateOf("") }
+    var newPatientPhone by remember { mutableStateOf("") }
+    var newPatientNameError by remember { mutableStateOf(false) }
 
     var patientError by remember { mutableStateOf(false) }
     var procedureError by remember { mutableStateOf(false) }
@@ -264,6 +271,65 @@ fun AppointmentFormScreen(
         )
     }
 
+    if (showNewPatientDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showNewPatientDialog = false
+                newPatientName = ""; newPatientPhone = ""; newPatientNameError = false
+            },
+            title = { Text("Novo paciente") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = newPatientName,
+                        onValueChange = { newPatientName = it; newPatientNameError = false },
+                        label = { Text("Nome *") },
+                        isError = newPatientNameError,
+                        supportingText = if (newPatientNameError) ({ Text("Nome obrigatório") }) else null,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newPatientPhone,
+                        onValueChange = { newPatientPhone = it },
+                        label = { Text("Telefone") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone,
+                            imeAction = ImeAction.Done
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newPatientName.isBlank()) {
+                        newPatientNameError = true
+                    } else {
+                        val patient = Patient(name = newPatientName.trim(), phone = newPatientPhone.trim())
+                        patientViewModel.savePatient(patient) { newId ->
+                            selectedPatientId = newId
+                            patientError = false
+                        }
+                        showNewPatientDialog = false
+                        newPatientName = ""; newPatientPhone = ""; newPatientNameError = false
+                    }
+                }) { Text("Cadastrar") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNewPatientDialog = false
+                    newPatientName = ""; newPatientPhone = ""; newPatientNameError = false
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -334,6 +400,14 @@ fun AppointmentFormScreen(
                     expanded = showPatientDropdown,
                     onDismissRequest = { showPatientDropdown = false }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("+ Novo paciente", color = MaterialTheme.colorScheme.primary) },
+                        onClick = {
+                            showPatientDropdown = false
+                            showNewPatientDialog = true
+                        }
+                    )
+                    HorizontalDivider()
                     patients.forEach { patient ->
                         DropdownMenuItem(
                             text = { Text(patient.name) },
