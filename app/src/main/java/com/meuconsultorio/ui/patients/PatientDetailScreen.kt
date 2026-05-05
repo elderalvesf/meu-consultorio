@@ -158,6 +158,7 @@ fun PatientDetailScreen(
                             TreatmentItemCard(
                                 treatment = treatment,
                                 onEdit = { onEditTreatment(treatment.id) },
+                                onDelete = { treatmentViewModel.deleteTreatment(treatment) },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
@@ -391,7 +392,23 @@ fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String)
 }
 
 @Composable
-fun TreatmentItemCard(treatment: Treatment, onEdit: () -> Unit, modifier: Modifier = Modifier) {
+fun TreatmentItemCard(treatment: Treatment, onEdit: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir tratamento") },
+            text = { Text("Deseja excluir este tratamento? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -415,8 +432,15 @@ fun TreatmentItemCard(treatment: Treatment, onEdit: () -> Unit, modifier: Modifi
                         color = MaterialTheme.colorScheme.onTertiaryContainer)
                 }
                 Spacer(Modifier.height(4.dp))
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
+                Row {
+                    IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar", modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Excluir",
+                            modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
