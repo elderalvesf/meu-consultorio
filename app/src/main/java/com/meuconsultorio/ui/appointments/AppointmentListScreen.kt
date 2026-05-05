@@ -190,38 +190,15 @@ fun AppointmentListScreen(
                 }
             }
 
-            if (weeklyView) {
-                if (displayedAppointments.isEmpty()) {
-                    EmptyState("Nenhuma consulta para esta data")
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(displayedAppointments, key = { it.id }) { appointment ->
-                            val patient = patientMap[appointment.patientId]
-                            AppointmentCard(
-                                appointment = appointment,
-                                patientName = patient?.name ?: "Paciente desconhecido",
-                                onEdit = { onEditAppointment(appointment.id) },
-                                onDelete = { viewModel.deleteAppointment(appointment) },
-                                onPatientClick = { patient?.let { onPatientClick(it.id) } },
-                                onStatusChange = { status -> viewModel.updateStatus(appointment, status) }
-                            )
-                        }
-                    }
-                }
-            } else {
-                DayTimelineView(
-                    appointments = displayedAppointments,
-                    patientMap = patientMap,
-                    selectedDate = selectedDate,
-                    onEdit = onEditAppointment,
-                    onDelete = { viewModel.deleteAppointment(it) },
-                    onPatientClick = onPatientClick,
-                    onStatusChange = { appt, status -> viewModel.updateStatus(appt, status) }
-                )
-            }
+            DayTimelineView(
+                appointments = displayedAppointments,
+                patientMap = patientMap,
+                selectedDate = selectedDate,
+                onEdit = onEditAppointment,
+                onDelete = { viewModel.deleteAppointment(it) },
+                onPatientClick = onPatientClick,
+                onStatusChange = { appt, status -> viewModel.updateStatus(appt, status) }
+            )
         }
     }
 }
