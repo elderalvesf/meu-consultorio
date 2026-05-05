@@ -42,8 +42,11 @@ val dentalTreatments = listOf(
     "Aplicação de flúor",
     "Selante de fóssulas",
     "Limpeza e profilaxia",
+    "Sessão Laserterapia",
     "Outro"
 )
+
+const val PROCEDURE_LASERTERAPIA = "Sessão Laserterapia"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +67,7 @@ fun TreatmentFormScreen(
     var description by remember { mutableStateOf("") }
     var costText by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
+    var sessionsText by remember { mutableStateOf("") }
     var status by remember { mutableStateOf(TreatmentStatus.EM_ANDAMENTO) }
     var date by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -93,6 +97,7 @@ fun TreatmentFormScreen(
                 description = t.description
                 costText = if (t.cost > 0) t.cost.toString() else ""
                 priceText = if (t.price > 0) t.price.toString() else ""
+                sessionsText = if (t.sessions > 0) t.sessions.toString() else ""
                 status = t.status
                 date = t.date
             }
@@ -186,6 +191,7 @@ fun TreatmentFormScreen(
                             description = description.trim(),
                             cost = costText.replace(",", ".").toDoubleOrNull() ?: 0.0,
                             price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
+                            sessions = if (procedure == PROCEDURE_LASERTERAPIA) sessionsText.toIntOrNull() ?: 0 else 0,
                             date = date,
                             status = status
                         )
@@ -273,6 +279,18 @@ fun TreatmentFormScreen(
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
+                )
+            }
+
+            if (procedure == PROCEDURE_LASERTERAPIA) {
+                OutlinedTextField(
+                    value = sessionsText,
+                    onValueChange = { sessionsText = it },
+                    label = { Text("Quantidade de sessões") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Filled.Repeat, contentDescription = null) }
                 )
             }
 

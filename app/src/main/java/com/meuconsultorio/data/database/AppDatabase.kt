@@ -17,7 +17,7 @@ import com.meuconsultorio.data.entity.Treatment
 
 @Database(
     entities = [Patient::class, Appointment::class, Treatment::class, Payment::class, ProntuarioEntry::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -91,6 +91,14 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "ALTER TABLE `appointments` ADD COLUMN `isPaid` INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `treatments` ADD COLUMN `sessions` INTEGER NOT NULL DEFAULT 0"
                 )
             }
         }
