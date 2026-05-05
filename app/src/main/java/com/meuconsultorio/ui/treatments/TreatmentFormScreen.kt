@@ -65,6 +65,8 @@ val dentalTreatments = listOf(
     "Limpeza e profilaxia",
     "Placa Miorrelaxante",
     "Protocolo DTM - 3 sessões laser + placa",
+    "Retorno 10 dias DTM",
+    "Retorno 15 dias DTM",
     "Outro"
 )
 
