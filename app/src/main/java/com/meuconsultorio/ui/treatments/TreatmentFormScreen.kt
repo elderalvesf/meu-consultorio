@@ -289,8 +289,7 @@ fun TreatmentFormScreen(
                     label = { Text("Quantidade de sessões") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Filled.Repeat, contentDescription = null) }
+                    singleLine = true
                 )
             }
 
