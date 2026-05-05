@@ -14,6 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
@@ -172,7 +176,10 @@ fun FinancialScreen(
                     TreatmentFinancialCard(
                         treatment = treatment,
                         patientName = patientMap[treatment.patientId]?.name ?: "Paciente",
-                        onPatientClick = { onPatientClick(treatment.patientId) }
+                        onPatientClick = { onPatientClick(treatment.patientId) },
+                        onStatusChange = { newStatus ->
+                            treatmentViewModel.saveTreatment(treatment.copy(status = newStatus))
+                        }
                     )
                 }
             }
@@ -234,8 +241,11 @@ fun FinancialCard(
 fun TreatmentFinancialCard(
     treatment: Treatment,
     patientName: String,
-    onPatientClick: () -> Unit
+    onPatientClick: () -> Unit,
+    onStatusChange: (TreatmentStatus) -> Unit
 ) {
+    var showStatusMenu by remember { mutableStateOf(false) }
+
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -266,11 +276,33 @@ fun TreatmentFinancialCard(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.tertiary)
                 Spacer(Modifier.height(4.dp))
-                Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
-                    Text(treatment.status.label,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer)
+                Box {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.clickable { showStatusMenu = true }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(treatment.status.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Spacer(Modifier.width(2.dp))
+                            Icon(Icons.Filled.ArrowDropDown, contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                        }
+                    }
+                    DropdownMenu(expanded = showStatusMenu, onDismissRequest = { showStatusMenu = false }) {
+                        TreatmentStatus.entries.forEach { status ->
+                            DropdownMenuItem(
+                                text = { Text(status.label) },
+                                onClick = { onStatusChange(status); showStatusMenu = false }
+                            )
+                        }
+                    }
                 }
             }
         }
