@@ -29,24 +29,46 @@ val dentalTreatments = listOf(
     "Tratamento de canal",
     "Extração dentária",
     "Extração de siso",
-    "Implante dentário",
+    "Instalação de implantes dentários",
     "Prótese total",
     "Prótese parcial removível",
     "Coroa dentária",
     "Faceta de porcelana",
     "Clareamento dental",
-    "Aparelho ortodôntico",
+    "Instalação aparelho ortodôntico",
+    "Manutenção aparelho ortodôntico",
+    "Remoção de sutura",
+    "Acompanhamento pós-operatório",
+    "Manutenção de PSI",
+    "Moldagem para restauração semidireta",
+    "Cimentação de restauração semidireta",
+    "Botóx",
+    "Retorno 15 dias Botóx",
+    "Preenchimento Labial",
+    "Retorno 15 dias preenchimento Labial",
+    "Sessão Laserterapia",
+    "Frenectomia",
+    "Extração de supranumerário",
+    "Extração de siso incluso/impactado",
+    "Tracionamento de dente incluso",
+    "Remoção de mucocele",
+    "Biópsia de tecidos moles",
+    "Biópsia de lesão óssea",
+    "Cirurgia parendodôntica",
+    "Levantamento de seio maxilar",
+    "Urgência",
     "Contenção ortodôntica",
     "Cirurgia periodontal",
     "Raspagem e alisamento radicular",
     "Aplicação de flúor",
     "Selante de fóssulas",
     "Limpeza e profilaxia",
-    "Sessão Laserterapia",
+    "Placa Miorrelaxante",
+    "Protocolo DTM - 3 sessões laser + placa",
     "Outro"
 )
 
-const val PROCEDURE_LASERTERAPIA = "Sessão Laserterapia"
+val proceduresWithSessions = setOf("Sessão Laserterapia")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +121,7 @@ fun TreatmentFormScreen(
                 costText = if (t.cost > 0) t.cost.toString() else ""
                 priceText = if (t.price > 0) t.price.toString() else ""
                 sessionsText = if (t.sessions > 0) t.sessions.toString() else ""
-                isLaserterapia = t.procedure.contains("Laserterapia", ignoreCase = true)
+                isLaserterapia = t.procedure in proceduresWithSessions
                 status = t.status
                 date = t.date
             }
@@ -252,7 +274,7 @@ fun TreatmentFormScreen(
                             text = { Text(proc) },
                             onClick = {
                                 procedure = proc
-                                isLaserterapia = proc.contains("Laserterapia", ignoreCase = true)
+                                isLaserterapia = proc in proceduresWithSessions
                                 if (!isLaserterapia) sessionsText = ""
                                 procedureError = false
                                 showProcedureDropdown = false
