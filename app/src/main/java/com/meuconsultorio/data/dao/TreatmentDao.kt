@@ -16,10 +16,10 @@ interface TreatmentDao {
     @Query("SELECT * FROM treatments WHERE id = :id")
     fun getTreatmentById(id: Long): Flow<Treatment?>
 
-    @Query("SELECT SUM(cost) FROM treatments WHERE patientId = :patientId")
+    @Query("SELECT SUM(cost) FROM treatments WHERE patientId = :patientId AND status = 'CONCLUIDO'")
     fun getTotalCostByPatient(patientId: Long): Flow<Double?>
 
-    @Query("SELECT SUM(cost) FROM treatments")
+    @Query("SELECT SUM(cost) FROM treatments WHERE status = 'CONCLUIDO'")
     fun getTotalCost(): Flow<Double?>
 
     @Query("SELECT SUM(price) FROM treatments WHERE patientId = :patientId AND status = 'CONCLUIDO'")
