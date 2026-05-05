@@ -14,12 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.Treatment
+import com.meuconsultorio.data.entity.TreatmentStatus
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinancialScreen(
     onPatientClick: (Long) -> Unit,
@@ -29,12 +32,96 @@ fun FinancialScreen(
 ) {
     val patients by patientViewModel.patients.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
+    val allAppointments by appointmentViewModel.allAppointments.collectAsState()
     val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
     val totalTreatmentPrice by treatmentViewModel.totalTreatmentPrice.collectAsState()
     val totalAppointmentPrice by appointmentViewModel.totalAppointmentPrice.collectAsState()
 
     val patientMap = patients.associateBy { it.id }
     val totalRevenue = totalTreatmentPrice + totalAppointmentPrice
+
+    var showRevenueDetail by remember { mutableStateOf(false) }
+
+    if (showRevenueDetail) {
+        val concludedTreatments = allTreatments.filter { it.status == TreatmentStatus.CONCLUIDO && it.price > 0 }
+        val paidAppointments = allAppointments.filter { it.price > 0 }
+
+        ModalBottomSheet(onDismissRequest = { showRevenueDetail = false }) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text("Origem do valor", style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Total: ${totalRevenue.toCurrency()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Spacer(Modifier.height(16.dp))
+
+                if (concludedTreatments.isNotEmpty()) {
+                    Text("Tratamentos concluídos",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(8.dp))
+                    concludedTreatments.forEach { treatment ->
+                        RevenueDetailRow(
+                            title = treatment.procedure,
+                            subtitle = patientMap[treatment.patientId]?.name ?: "Paciente",
+                            date = treatment.date.toFormattedDate(),
+                            amount = treatment.price.toCurrency()
+                        )
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal tratamentos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(totalTreatmentPrice.toCurrency(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                if (paidAppointments.isNotEmpty()) {
+                    Text("Consultas",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(8.dp))
+                    paidAppointments.forEach { appointment ->
+                        RevenueDetailRow(
+                            title = appointment.procedureType,
+                            subtitle = patientMap[appointment.patientId]?.name ?: "Paciente",
+                            date = appointment.dateTime.toFormattedDate(),
+                            amount = appointment.price.toCurrency()
+                        )
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal consultas",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(totalAppointmentPrice.toCurrency(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+
+                if (concludedTreatments.isEmpty() && paidAppointments.isEmpty()) {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text("Nenhum valor registrado",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = { AppTopBar(title = "Financeiro") }
@@ -54,7 +141,8 @@ fun FinancialScreen(
                         icon = Icons.Filled.MedicalServices,
                         label = "Valor tratamentos",
                         value = totalRevenue.toCurrency(),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
+                        onClick = { showRevenueDetail = true }
                     )
                     FinancialCard(
                         modifier = Modifier.weight(1f),
@@ -93,17 +181,48 @@ fun FinancialScreen(
 }
 
 @Composable
+fun RevenueDetailRow(title: String, subtitle: String, date: String, amount: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(date, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(amount, style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
 fun FinancialCard(
     modifier: Modifier = Modifier,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
-    color: androidx.compose.ui.graphics.Color
+    color: androidx.compose.ui.graphics.Color,
+    onClick: (() -> Unit)? = null
 ) {
-    Card(modifier = modifier, shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f))) {
+    Card(
+        modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f))
+    ) {
         Column(Modifier.padding(12.dp)) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+                if (onClick != null) {
+                    Spacer(Modifier.weight(1f))
+                    Icon(Icons.Filled.ChevronRight, contentDescription = "Ver detalhes",
+                        tint = color.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                }
+            }
             Spacer(Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
