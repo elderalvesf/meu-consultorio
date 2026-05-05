@@ -11,8 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
 import com.meuconsultorio.ui.components.AppTopBar
@@ -68,6 +71,9 @@ fun TreatmentFormScreen(
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showNewProcedureDialog by remember { mutableStateOf(false) }
+    var newProcedureName by remember { mutableStateOf("") }
+    var newProcedureNameError by remember { mutableStateOf(false) }
 
     var patientError by remember { mutableStateOf(false) }
     var procedureError by remember { mutableStateOf(false) }
@@ -109,6 +115,45 @@ fun TreatmentFormScreen(
     val cal = Calendar.getInstance().apply { timeInMillis = date }
     val formattedDate = "${cal.get(Calendar.DAY_OF_MONTH).toString().padStart(2,'0')}/" +
             "${(cal.get(Calendar.MONTH)+1).toString().padStart(2,'0')}/${cal.get(Calendar.YEAR)}"
+
+    if (showNewProcedureDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewProcedureDialog = false; newProcedureName = ""; newProcedureNameError = false },
+            title = { Text("Novo procedimento") },
+            text = {
+                OutlinedTextField(
+                    value = newProcedureName,
+                    onValueChange = { newProcedureName = it; newProcedureNameError = false },
+                    label = { Text("Nome do procedimento *") },
+                    isError = newProcedureNameError,
+                    supportingText = if (newProcedureNameError) ({ Text("Nome obrigatório") }) else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newProcedureName.isBlank()) {
+                        newProcedureNameError = true
+                    } else {
+                        procedure = newProcedureName.trim()
+                        procedureError = false
+                        showNewProcedureDialog = false
+                        newProcedureName = ""
+                    }
+                }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNewProcedureDialog = false; newProcedureName = ""; newProcedureNameError = false
+                }) { Text("Cancelar") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -170,7 +215,8 @@ fun TreatmentFormScreen(
             ExposedDropdownMenuBox(expanded = showProcedureDropdown, onExpandedChange = { showProcedureDropdown = it }) {
                 OutlinedTextField(
                     value = procedure,
-                    onValueChange = { procedure = it; procedureError = false },
+                    onValueChange = {},
+                    readOnly = true,
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -178,7 +224,12 @@ fun TreatmentFormScreen(
                     supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null
                 )
                 ExposedDropdownMenu(expanded = showProcedureDropdown, onDismissRequest = { showProcedureDropdown = false }) {
-                    dentalTreatments.forEach { proc ->
+                    DropdownMenuItem(
+                        text = { Text("+ Novo procedimento", color = MaterialTheme.colorScheme.primary) },
+                        onClick = { showProcedureDropdown = false; showNewProcedureDialog = true }
+                    )
+                    HorizontalDivider()
+                    dentalTreatments.sorted().forEach { proc ->
                         DropdownMenuItem(
                             text = { Text(proc) },
                             onClick = { procedure = proc; procedureError = false; showProcedureDropdown = false }

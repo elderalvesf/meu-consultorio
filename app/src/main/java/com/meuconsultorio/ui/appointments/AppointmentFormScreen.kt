@@ -90,6 +90,9 @@ fun AppointmentFormScreen(
     var newPatientName by remember { mutableStateOf("") }
     var newPatientPhone by remember { mutableStateOf("") }
     var newPatientNameError by remember { mutableStateOf(false) }
+    var showNewProcedureDialog by remember { mutableStateOf(false) }
+    var newProcedureName by remember { mutableStateOf("") }
+    var newProcedureNameError by remember { mutableStateOf(false) }
 
     var patientError by remember { mutableStateOf(false) }
     var procedureError by remember { mutableStateOf(false) }
@@ -333,6 +336,45 @@ fun AppointmentFormScreen(
         )
     }
 
+    if (showNewProcedureDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewProcedureDialog = false; newProcedureName = ""; newProcedureNameError = false },
+            title = { Text("Novo procedimento") },
+            text = {
+                OutlinedTextField(
+                    value = newProcedureName,
+                    onValueChange = { newProcedureName = it; newProcedureNameError = false },
+                    label = { Text("Nome do procedimento *") },
+                    isError = newProcedureNameError,
+                    supportingText = if (newProcedureNameError) ({ Text("Nome obrigatório") }) else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Done
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newProcedureName.isBlank()) {
+                        newProcedureNameError = true
+                    } else {
+                        procedureType = newProcedureName.trim()
+                        procedureError = false
+                        showNewProcedureDialog = false
+                        newProcedureName = ""
+                    }
+                }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNewProcedureDialog = false; newProcedureName = ""; newProcedureNameError = false
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -430,7 +472,8 @@ fun AppointmentFormScreen(
             ) {
                 OutlinedTextField(
                     value = procedureType,
-                    onValueChange = { procedureType = it; procedureError = false },
+                    onValueChange = {},
+                    readOnly = true,
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -441,7 +484,12 @@ fun AppointmentFormScreen(
                     expanded = showProcedureDropdown,
                     onDismissRequest = { showProcedureDropdown = false }
                 ) {
-                    dentalProcedures.forEach { proc ->
+                    DropdownMenuItem(
+                        text = { Text("+ Novo procedimento", color = MaterialTheme.colorScheme.primary) },
+                        onClick = { showProcedureDropdown = false; showNewProcedureDialog = true }
+                    )
+                    HorizontalDivider()
+                    dentalProcedures.sorted().forEach { proc ->
                         DropdownMenuItem(
                             text = { Text(proc) },
                             onClick = { procedureType = proc; procedureError = false; showProcedureDropdown = false }
