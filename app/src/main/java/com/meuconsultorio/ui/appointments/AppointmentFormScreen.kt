@@ -85,7 +85,7 @@ fun AppointmentFormScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showPatientDropdown by remember { mutableStateOf(false) }
-    var patientSearchQuery by remember { mutableStateOf("") }
+    var patientNameText by remember { mutableStateOf("") }
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -138,10 +138,11 @@ fun AppointmentFormScreen(
         if (appointmentId != null) viewModel.loadAppointment(appointmentId)
     }
 
-    LaunchedEffect(selectedAppointment) {
+    LaunchedEffect(selectedAppointment, patients) {
         selectedAppointment?.let { appt ->
             if (appointmentId != null) {
                 selectedPatientId = appt.patientId
+                patientNameText = patients.find { it.id == appt.patientId }?.name ?: ""
                 procedureType = appt.procedureType
                 status = appt.status
                 durationMinutes = appt.durationMinutes
@@ -323,6 +324,7 @@ fun AppointmentFormScreen(
                         val patient = Patient(name = newPatientName.trim(), phone = newPatientPhone.trim())
                         patientViewModel.savePatient(patient) { newId ->
                             selectedPatientId = newId
+                            patientNameText = newPatientName.trim()
                             patientError = false
                         }
                         showNewPatientDialog = false
@@ -432,14 +434,15 @@ fun AppointmentFormScreen(
         ) {
             ExposedDropdownMenuBox(
                 expanded = showPatientDropdown,
-                onExpandedChange = { expanded ->
-                    showPatientDropdown = expanded
-                    if (!expanded) patientSearchQuery = ""
-                }
+                onExpandedChange = { showPatientDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = if (showPatientDropdown) patientSearchQuery else patients.find { it.id == selectedPatientId }?.name ?: "",
-                    onValueChange = { patientSearchQuery = it; showPatientDropdown = true },
+                    value = patientNameText,
+                    onValueChange = {
+                        patientNameText = it
+                        selectedPatientId = null
+                        showPatientDropdown = true
+                    },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -449,27 +452,26 @@ fun AppointmentFormScreen(
                 )
                 ExposedDropdownMenu(
                     expanded = showPatientDropdown,
-                    onDismissRequest = { showPatientDropdown = false; patientSearchQuery = "" }
+                    onDismissRequest = { showPatientDropdown = false }
                 ) {
                     DropdownMenuItem(
                         text = { Text("+ Novo paciente", color = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showPatientDropdown = false
-                            patientSearchQuery = ""
                             showNewPatientDialog = true
                         }
                     )
                     HorizontalDivider()
                     val filteredPatients = patients.filter {
-                        patientSearchQuery.isBlank() || it.name.contains(patientSearchQuery, ignoreCase = true)
+                        patientNameText.isBlank() || it.name.contains(patientNameText, ignoreCase = true)
                     }
                     filteredPatients.forEach { patient ->
                         DropdownMenuItem(
                             text = { Text(patient.name) },
                             onClick = {
                                 selectedPatientId = patient.id
+                                patientNameText = patient.name
                                 patientError = false
-                                patientSearchQuery = ""
                                 showPatientDropdown = false
                             }
                         )
