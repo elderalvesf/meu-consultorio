@@ -491,13 +491,16 @@ fun AppointmentFormScreen(
             ) {
                 OutlinedTextField(
                     value = procedureType,
-                    onValueChange = {},
-                    readOnly = true,
+                    onValueChange = {
+                        procedureType = it
+                        showProcedureDropdown = true
+                    },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     isError = procedureError,
-                    supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null
+                    supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null,
+                    placeholder = { Text("Buscar procedimento...") }
                 )
                 ExposedDropdownMenu(
                     expanded = showProcedureDropdown,
@@ -508,10 +511,19 @@ fun AppointmentFormScreen(
                         onClick = { showProcedureDropdown = false; showNewProcedureDialog = true }
                     )
                     HorizontalDivider()
-                    dentalProcedures.sorted().forEach { proc ->
+                    val filteredProcedures = dentalProcedures.sorted().filter {
+                        procedureType.isBlank() || it.contains(procedureType, ignoreCase = true)
+                    }
+                    filteredProcedures.forEach { proc ->
                         DropdownMenuItem(
                             text = { Text(proc) },
                             onClick = { procedureType = proc; procedureError = false; showProcedureDropdown = false }
+                        )
+                    }
+                    if (filteredProcedures.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("Nenhum procedimento encontrado", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            onClick = {}
                         )
                     }
                 }
