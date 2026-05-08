@@ -60,6 +60,7 @@ class FirestoreSync @Inject constructor(
             "notes" to appointment.notes,
             "price" to appointment.price,
             "isPaid" to appointment.isPaid,
+            "attachments" to appointment.attachments,
             "createdAt" to appointment.createdAt
         ))
     }
@@ -193,6 +194,7 @@ class FirestoreSync @Inject constructor(
             notes = getString("notes") ?: "",
             price = getDouble("price") ?: 0.0,
             isPaid = getBoolean("isPaid") ?: false,
+            attachments = getString("attachments") ?: "",
             createdAt = getLong("createdAt") ?: System.currentTimeMillis()
         )
     }

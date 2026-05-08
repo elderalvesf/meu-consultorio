@@ -27,6 +27,7 @@ data class Appointment(
     val notes: String = "",
     val price: Double = 0.0,
     val isPaid: Boolean = false,
+    val attachments: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val calendarEventId: Long = -1L
 )

@@ -2,11 +2,14 @@ package com.meuconsultorio.ui.appointments
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,12 +17,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
 import com.meuconsultorio.data.entity.Patient
@@ -28,6 +34,8 @@ import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import kotlinx.coroutines.launch
+import java.io.File
 import java.util.*
 
 val dentalProcedures = listOf(
@@ -64,6 +72,7 @@ fun AppointmentFormScreen(
     val selectedAppointment by viewModel.selectedAppointment.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedPatientId by remember { mutableStateOf(preselectedPatientId) }
     var procedureType by remember { mutableStateOf("") }
@@ -71,6 +80,8 @@ fun AppointmentFormScreen(
     var durationMinutes by remember { mutableIntStateOf(60) }
     var notes by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
+    var attachmentPaths by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isAddingAttachment by remember { mutableStateOf(false) }
     var isPaid by remember { mutableStateOf(false) }
     var dateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
@@ -128,6 +139,32 @@ fun AppointmentFormScreen(
         }
     }
 
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                isAddingAttachment = true
+                val path = viewModel.saveFileToInternalStorage(context, it, "image/*")
+                if (path != null) attachmentPaths = attachmentPaths + path
+                isAddingAttachment = false
+            }
+        }
+    }
+
+    val pdfPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                isAddingAttachment = true
+                val path = viewModel.saveFileToInternalStorage(context, it, "application/pdf")
+                if (path != null) attachmentPaths = attachmentPaths + path
+                isAddingAttachment = false
+            }
+        }
+    }
+
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dateTime)
     val timePickerState = rememberTimePickerState(
         initialHour = Calendar.getInstance().apply { timeInMillis = dateTime }.get(Calendar.HOUR_OF_DAY),
@@ -149,6 +186,7 @@ fun AppointmentFormScreen(
                 notes = appt.notes
                 priceText = if (appt.price > 0) appt.price.toString() else ""
                 isPaid = appt.isPaid
+                attachmentPaths = appt.attachments.split(";").filter { it.isNotBlank() }
                 dateTime = appt.dateTime
                 existingCalendarEventId = appt.calendarEventId
                 syncWithCalendar = appt.calendarEventId > 0L
@@ -220,6 +258,7 @@ fun AppointmentFormScreen(
             notes = notes,
             price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
             isPaid = isPaid,
+            attachments = attachmentPaths.joinToString(";"),
             calendarEventId = existingCalendarEventId
         )
         val patientName = patients.find { it.id == selectedPatientId }?.name ?: ""
@@ -615,6 +654,83 @@ fun AppointmentFormScreen(
                 modifier = Modifier.fillMaxWidth().height(100.dp),
                 maxLines = 4
             )
+
+            // Anexos
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Anexos", style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                attachmentPaths.forEach { path ->
+                    val file = File(path)
+                    val isPdf = path.endsWith(".pdf")
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isPdf) {
+                                Icon(Icons.Filled.PictureAsPdf, contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.error)
+                                Spacer(Modifier.width(8.dp))
+                                Text(file.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1)
+                            } else {
+                                AsyncImage(
+                                    model = Uri.fromFile(file),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(file.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1)
+                            }
+                            IconButton(onClick = {
+                                file.takeIf { it.exists() }?.delete()
+                                attachmentPaths = attachmentPaths - path
+                            }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Remover",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                if (isAddingAttachment) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { imagePickerLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Imagem")
+                    }
+                    OutlinedButton(
+                        onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("PDF")
+                    }
+                }
+            }
 
             // Card de sincronização com Google Calendar
             Card(

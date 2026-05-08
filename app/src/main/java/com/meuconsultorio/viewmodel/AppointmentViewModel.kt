@@ -1,5 +1,7 @@
 package com.meuconsultorio.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meuconsultorio.data.calendar.GoogleCalendarSync
@@ -11,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -136,6 +140,21 @@ class AppointmentViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun saveFileToInternalStorage(context: Context, uri: Uri, mimeType: String): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val dir = File(context.filesDir, "appointments").apply { mkdirs() }
+                val ext = if (mimeType.contains("pdf")) "pdf" else "jpg"
+                val destFile = File(dir, "attach_${System.currentTimeMillis()}.$ext")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destFile).use { output -> input.copyTo(output) }
+                }
+                destFile.absolutePath
+            } catch (e: Exception) {
+                null
+            }
+        }
 
     fun deleteAppointment(appointment: Appointment) {
         viewModelScope.launch {
