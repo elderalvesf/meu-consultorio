@@ -619,9 +619,9 @@ fun AppointmentCard(
 
 @Composable
 fun statusColor(status: AppointmentStatus) = when (status) {
-    AppointmentStatus.AGENDADA -> MaterialTheme.colorScheme.primary
-    AppointmentStatus.CONFIRMADA -> MaterialTheme.colorScheme.secondary
+    AppointmentStatus.AGENDADA -> Color(0xFF9E9E9E)
+    AppointmentStatus.CONFIRMADA -> Color(0xFF4CAF50)
     AppointmentStatus.CONCLUIDA -> MaterialTheme.colorScheme.tertiary
-    AppointmentStatus.CANCELADA -> MaterialTheme.colorScheme.error
+    AppointmentStatus.CANCELADA -> Color(0xFFF44336)
     AppointmentStatus.NAO_COMPARECEU -> MaterialTheme.colorScheme.errorContainer
 }

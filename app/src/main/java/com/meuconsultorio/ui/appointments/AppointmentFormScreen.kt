@@ -85,6 +85,7 @@ fun AppointmentFormScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showPatientDropdown by remember { mutableStateOf(false) }
+    var patientSearchQuery by remember { mutableStateOf("") }
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -431,38 +432,52 @@ fun AppointmentFormScreen(
         ) {
             ExposedDropdownMenuBox(
                 expanded = showPatientDropdown,
-                onExpandedChange = { showPatientDropdown = it }
+                onExpandedChange = { expanded ->
+                    showPatientDropdown = expanded
+                    if (!expanded) patientSearchQuery = ""
+                }
             ) {
                 OutlinedTextField(
-                    value = patients.find { it.id == selectedPatientId }?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
+                    value = if (showPatientDropdown) patientSearchQuery else patients.find { it.id == selectedPatientId }?.name ?: "",
+                    onValueChange = { patientSearchQuery = it; showPatientDropdown = true },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     isError = patientError,
-                    supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null
+                    supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null,
+                    placeholder = { Text("Buscar paciente...") }
                 )
                 ExposedDropdownMenu(
                     expanded = showPatientDropdown,
-                    onDismissRequest = { showPatientDropdown = false }
+                    onDismissRequest = { showPatientDropdown = false; patientSearchQuery = "" }
                 ) {
                     DropdownMenuItem(
                         text = { Text("+ Novo paciente", color = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showPatientDropdown = false
+                            patientSearchQuery = ""
                             showNewPatientDialog = true
                         }
                     )
                     HorizontalDivider()
-                    patients.forEach { patient ->
+                    val filteredPatients = patients.filter {
+                        patientSearchQuery.isBlank() || it.name.contains(patientSearchQuery, ignoreCase = true)
+                    }
+                    filteredPatients.forEach { patient ->
                         DropdownMenuItem(
                             text = { Text(patient.name) },
                             onClick = {
                                 selectedPatientId = patient.id
                                 patientError = false
+                                patientSearchQuery = ""
                                 showPatientDropdown = false
                             }
+                        )
+                    }
+                    if (filteredPatients.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("Nenhum paciente encontrado", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            onClick = {}
                         )
                     }
                 }
