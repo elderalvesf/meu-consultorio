@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.meuconsultorio.data.calendar.GoogleCalendarSync
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
+import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.repository.AppointmentRepository
+import com.meuconsultorio.data.repository.TreatmentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -21,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AppointmentViewModel @Inject constructor(
     private val repository: AppointmentRepository,
+    private val treatmentRepository: TreatmentRepository,
     private val calendarSync: GoogleCalendarSync
 ) : ViewModel() {
 
@@ -37,6 +40,11 @@ class AppointmentViewModel @Inject constructor(
     val todayAppointments: StateFlow<List<Appointment>> = _selectedDate.flatMapLatest { date ->
         val (start, end) = getDayRange(date)
         repository.getAppointmentsByDay(start, end)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val treatmentsForSelectedDay: StateFlow<List<Treatment>> = _selectedDate.flatMapLatest { date ->
+        val (start, end) = getDayRange(date)
+        treatmentRepository.getTreatmentsByDay(start, end)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val todayCount: StateFlow<Int> = run {

@@ -13,6 +13,7 @@ class TreatmentRepository @Inject constructor(
     private val sync: FirestoreSync
 ) {
     fun getAllTreatments(): Flow<List<Treatment>> = dao.getAllTreatments()
+    fun getTreatmentsByDay(start: Long, end: Long): Flow<List<Treatment>> = dao.getTreatmentsByDay(start, end)
     fun getTreatmentsByPatient(patientId: Long): Flow<List<Treatment>> = dao.getTreatmentsByPatient(patientId)
     fun getTreatmentById(id: Long): Flow<Treatment?> = dao.getTreatmentById(id)
     fun getTotalCostByPatient(patientId: Long): Flow<Double?> = dao.getTotalCostByPatient(patientId)

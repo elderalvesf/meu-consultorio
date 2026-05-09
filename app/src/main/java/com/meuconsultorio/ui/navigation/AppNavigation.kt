@@ -178,7 +178,9 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
             composable(Screen.Appointments.route) {
                 AppointmentListScreen(
                     onAddAppointment = { navController.navigate(Screen.AppointmentForm.createRoute()) },
+                    onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute()) },
                     onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
+                    onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it)) },
                     onPatientClick = { navController.navigate(Screen.PatientDetail.createRoute(it)) }
                 )
             }

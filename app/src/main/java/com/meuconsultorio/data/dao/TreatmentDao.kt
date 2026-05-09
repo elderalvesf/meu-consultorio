@@ -10,6 +10,9 @@ interface TreatmentDao {
     @Query("SELECT * FROM treatments ORDER BY date DESC")
     fun getAllTreatments(): Flow<List<Treatment>>
 
+    @Query("SELECT * FROM treatments WHERE date >= :startOfDay AND date <= :endOfDay ORDER BY date ASC")
+    fun getTreatmentsByDay(startOfDay: Long, endOfDay: Long): Flow<List<Treatment>>
+
     @Query("SELECT * FROM treatments WHERE patientId = :patientId ORDER BY date DESC")
     fun getTreatmentsByPatient(patientId: Long): Flow<List<Treatment>>
 

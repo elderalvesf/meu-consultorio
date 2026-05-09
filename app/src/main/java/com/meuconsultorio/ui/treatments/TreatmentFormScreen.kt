@@ -100,6 +100,7 @@ fun TreatmentFormScreen(
     var showProcedureDropdown by remember { mutableStateOf(false) }
     var showStatusDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var showNewProcedureDialog by remember { mutableStateOf(false) }
     var newProcedureName by remember { mutableStateOf("") }
     var newProcedureNameError by remember { mutableStateOf(false) }
@@ -108,6 +109,10 @@ fun TreatmentFormScreen(
     var procedureError by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = date)
+    val timePickerState = rememberTimePickerState(
+        initialHour = Calendar.getInstance().apply { timeInMillis = date }.get(Calendar.HOUR_OF_DAY),
+        initialMinute = Calendar.getInstance().apply { timeInMillis = date }.get(Calendar.MINUTE)
+    )
 
     LaunchedEffect(treatmentId) {
         if (treatmentId != null) viewModel.loadTreatment(treatmentId)
@@ -138,11 +143,10 @@ fun TreatmentFormScreen(
                     datePickerState.selectedDateMillis?.let { utcMillis ->
                         val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = utcMillis }
                         val localCal = Calendar.getInstance().apply {
+                            timeInMillis = date
                             set(Calendar.YEAR, utcCal.get(Calendar.YEAR))
                             set(Calendar.MONTH, utcCal.get(Calendar.MONTH))
                             set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
-                            set(Calendar.HOUR_OF_DAY, 12)
-                            set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                         }
                         date = localCal.timeInMillis
                     }
@@ -153,9 +157,32 @@ fun TreatmentFormScreen(
         ) { DatePicker(state = datePickerState) }
     }
 
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Selecionar horário") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = date
+                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        set(Calendar.MINUTE, timePickerState.minute)
+                        set(Calendar.SECOND, 0)
+                    }
+                    date = cal.timeInMillis
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") } }
+        )
+    }
+
     val cal = Calendar.getInstance().apply { timeInMillis = date }
     val formattedDate = "${cal.get(Calendar.DAY_OF_MONTH).toString().padStart(2,'0')}/" +
             "${(cal.get(Calendar.MONTH)+1).toString().padStart(2,'0')}/${cal.get(Calendar.YEAR)}"
+    val formattedTime = "${cal.get(Calendar.HOUR_OF_DAY).toString().padStart(2,'0')}:" +
+            "${cal.get(Calendar.MINUTE).toString().padStart(2,'0')}"
 
     if (showNewProcedureDialog) {
         AlertDialog(
@@ -325,16 +352,29 @@ fun TreatmentFormScreen(
                 )
             }
 
-            Box {
-                OutlinedTextField(
-                    value = formattedDate,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Data") },
-                    trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = formattedDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Data") },
+                        trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+                }
+                Box(Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = formattedTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Horário") },
+                        trailingIcon = { Icon(Icons.Filled.AccessTime, null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(Modifier.matchParentSize().clickable { showTimePicker = true })
+                }
             }
 
             ExposedDropdownMenuBox(expanded = showStatusDropdown, onExpandedChange = { showStatusDropdown = it }) {

@@ -39,23 +39,13 @@ import java.io.File
 import java.util.*
 
 val dentalProcedures = listOf(
-    "Consulta de avaliação",
-    "Limpeza e profilaxia",
-    "Clareamento dental",
-    "Restauração (resina)",
-    "Restauração (amálgama)",
-    "Extração simples",
-    "Extração de siso",
-    "Canal (endodontia)",
-    "Prótese dentária",
-    "Implante dentário",
-    "Ortodontia (aparelho)",
-    "Periodontia (gengiva)",
-    "Radiografia",
-    "Retorno 10 dias DTM",
-    "Retorno 15 dias DTM",
-    "Urgência / Dor",
-    "Retorno",
+    "Consulta Siso",
+    "Consulta DTM",
+    "Consulta Geral",
+    "Consulta Especialista Parceiro",
+    "Consulta Implante",
+    "Consulta Harmonização",
+    "Consulta Infantil",
     "Outro"
 )
 
