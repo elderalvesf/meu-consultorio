@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -134,9 +136,10 @@ fun AppointmentListScreen(
                             }
                             SmallFloatingActionButton(
                                 onClick = { fabExpanded = false; onAddTreatment() },
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.semantics { contentDescription = "fab_novo_tratamento" }
                             ) {
-                                Icon(Icons.Filled.Healing, contentDescription = "Novo tratamento")
+                                Icon(Icons.Filled.Healing, contentDescription = null)
                             }
                         }
                         Row(
@@ -156,14 +159,18 @@ fun AppointmentListScreen(
                             }
                             SmallFloatingActionButton(
                                 onClick = { fabExpanded = false; onAddAppointment() },
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.semantics { contentDescription = "fab_novo_agendamento" }
                             ) {
-                                Icon(Icons.Filled.CalendarMonth, contentDescription = "Nova consulta")
+                                Icon(Icons.Filled.CalendarMonth, contentDescription = null)
                             }
                         }
                     }
                 }
-                FloatingActionButton(onClick = { fabExpanded = !fabExpanded }) {
+                FloatingActionButton(
+                    onClick = { fabExpanded = !fabExpanded },
+                    modifier = Modifier.semantics { contentDescription = "fab_agenda" }
+                ) {
                     Icon(
                         if (fabExpanded) Icons.Filled.Close else Icons.Filled.Add,
                         contentDescription = if (fabExpanded) "Fechar" else "Adicionar"
@@ -172,7 +179,7 @@ fun AppointmentListScreen(
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).semantics { contentDescription = "agenda_screen" }) {
 
             // Toggle Dia / Semana
             Row(
@@ -417,6 +424,7 @@ fun DayTimelineView(
         Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .semantics { contentDescription = "timeline_agenda" }
     ) {
         // Hour labels
         Column(Modifier.width(52.dp)) {
@@ -602,6 +610,7 @@ fun AppointmentTimelineItem(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(4.dp))
                 .clickable { showMenu = true }
+                .semantics(mergeDescendants = true) { contentDescription = "card_agendamento" }
         ) {
             Box(Modifier.width(4.dp).fillMaxHeight().background(color))
             Column(
@@ -915,6 +924,7 @@ fun TreatmentTimelineItem(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(4.dp))
                 .clickable { showMenu = true }
+                .semantics(mergeDescendants = true) { contentDescription = "card_tratamento" }
         ) {
             Box(
                 Modifier

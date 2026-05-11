@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
@@ -99,7 +101,7 @@ fun PatientDetailScreen(
 
         val entriesByAppointment = prontuarioEntries.groupBy { it.appointmentId }
 
-        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding).semantics { contentDescription = "paciente_detalhe_screen" }) {
             item {
                 PatientInfoCard(patient = patient!!, totalCost = totalCost, totalPrice = totalPrice)
             }
@@ -107,8 +109,10 @@ fun PatientDetailScreen(
             item {
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                        modifier = Modifier.semantics { contentDescription = "tab_prontuario" },
                         text = { Text("Prontuário (${appointments.size})") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                        modifier = Modifier.semantics { contentDescription = "tab_tratamentos" },
                         text = { Text("Tratamentos (${treatments.size})") })
                 }
             }
@@ -117,7 +121,10 @@ fun PatientDetailScreen(
                 0 -> {
                     item {
                         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-                            FilledTonalButton(onClick = onAddAppointment) {
+                            FilledTonalButton(
+                                onClick = onAddAppointment,
+                                modifier = Modifier.semantics { contentDescription = "btn_nova_consulta_paciente" }
+                            ) {
                                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Nova consulta")
@@ -144,7 +151,10 @@ fun PatientDetailScreen(
                 1 -> {
                     item {
                         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-                            FilledTonalButton(onClick = onAddTreatment) {
+                            FilledTonalButton(
+                                onClick = onAddTreatment,
+                                modifier = Modifier.semantics { contentDescription = "btn_novo_tratamento_paciente" }
+                            ) {
                                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("Novo tratamento")
@@ -181,7 +191,10 @@ fun AppointmentProntuarioCard(
     onDeleteEntry: (ProntuarioEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+    Card(
+        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "card_consulta_prontuario" },
+        shape = RoundedCornerShape(12.dp)
+    ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -409,7 +422,10 @@ fun TreatmentItemCard(treatment: Treatment, onEdit: () -> Unit, onDelete: () -> 
         )
     }
 
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
+    Card(
+        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "card_tratamento_paciente" },
+        shape = RoundedCornerShape(10.dp)
+    ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(treatment.procedure, style = MaterialTheme.typography.titleMedium)

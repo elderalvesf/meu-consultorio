@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -121,11 +123,11 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         StatCard(
-                            Modifier.weight(1f), Icons.Filled.People, "Pacientes",
+                            Modifier.weight(1f).semantics { contentDescription = "card_stat_pacientes" }, Icons.Filled.People, "Pacientes",
                             totalPatients.toString(), MaterialTheme.colorScheme.primary, onNavigateToPatients
                         )
                         StatCard(
-                            Modifier.weight(1f), Icons.Filled.CalendarMonth, "Hoje",
+                            Modifier.weight(1f).semantics { contentDescription = "card_stat_consultas_hoje" }, Icons.Filled.CalendarMonth, "Hoje",
                             todayAppointments.size.toString(), MaterialTheme.colorScheme.secondary, onNavigateToAppointments
                         )
                     }
@@ -150,7 +152,7 @@ fun HomeScreen(
         } else {
             // Phone: single column
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding).semantics { contentDescription = "home_screen" },
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -159,9 +161,9 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatCard(Modifier.weight(1f), Icons.Filled.People, "Pacientes",
+                        StatCard(Modifier.weight(1f).semantics { contentDescription = "card_stat_pacientes" }, Icons.Filled.People, "Pacientes",
                             totalPatients.toString(), MaterialTheme.colorScheme.primary, onNavigateToPatients)
-                        StatCard(Modifier.weight(1f), Icons.Filled.CalendarMonth, "Hoje",
+                        StatCard(Modifier.weight(1f).semantics { contentDescription = "card_stat_consultas_hoje" }, Icons.Filled.CalendarMonth, "Hoje",
                             todayAppointments.size.toString(), MaterialTheme.colorScheme.secondary, onNavigateToAppointments)
                     }
                 }
@@ -244,7 +246,10 @@ fun StatCard(
 
 @Composable
 fun TodayAppointmentCard(appointment: Appointment, patientName: String? = null) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "card_consulta_hoje" },
+        shape = RoundedCornerShape(10.dp)
+    ) {
         Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 shape = RoundedCornerShape(8.dp),

@@ -44,3 +44,26 @@ jobs:
           testers: elderalvesf@gmail.com, larissahresende@gmail.com
           file: app/build/outputs/apk/release/app-release.apk
           releaseNotes: "Build automático do commit ${{ github.sha }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Build #${{ github.run_number }}"
+          prerelease: true
+          files: app/build/outputs/apk/release/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger E2E tests
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TEST_REPO_TOKEN }}
+          repository: elderalvesf/meu-consultorio-tests
+          event-type: new-build
+          client-payload: >
+            {
+              "apk_url": "https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/app-release.apk",
+              "build_number": "${{ github.run_number }}",
+              "sha": "${{ github.sha }}"
+            }

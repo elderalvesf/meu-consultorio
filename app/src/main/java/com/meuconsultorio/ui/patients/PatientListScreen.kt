@@ -15,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,16 +40,22 @@ fun PatientListScreen(
     Scaffold(
         topBar = { AppTopBar(title = "Pacientes") },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddPatient) {
-                Icon(Icons.Filled.Add, contentDescription = "Adicionar paciente")
+            FloatingActionButton(
+                onClick = onAddPatient,
+                modifier = Modifier.semantics { contentDescription = "fab_novo_paciente" }
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null)
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).semantics { contentDescription = "pacientes_screen" }) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = viewModel::setSearchQuery,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .semantics { contentDescription = "campo_busca_paciente" },
                 placeholder = { Text("Buscar por nome, CPF ou telefone...") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
@@ -91,7 +99,10 @@ fun PatientListScreen(
 @Composable
 fun PatientCard(patient: Patient, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = "card_paciente" },
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {

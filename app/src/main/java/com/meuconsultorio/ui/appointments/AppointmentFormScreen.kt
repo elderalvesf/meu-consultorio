@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -445,6 +447,7 @@ fun AppointmentFormScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { if (!isSyncing) handleSave() },
+                modifier = Modifier.semantics { contentDescription = "btn_salvar_agendamento" },
                 icon = {
                     if (isSyncing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     else Icon(Icons.Filled.Save, contentDescription = null)
@@ -458,7 +461,8 @@ fun AppointmentFormScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(16.dp)
+                .semantics { contentDescription = "agendamento_form_screen" },
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ExposedDropdownMenuBox(
@@ -474,7 +478,7 @@ fun AppointmentFormScreen(
                     },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_paciente_agendamento" },
                     isError = patientError,
                     supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null,
                     placeholder = { Text("Buscar paciente...") }
@@ -526,7 +530,7 @@ fun AppointmentFormScreen(
                     },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_procedimento_agendamento" },
                     isError = procedureError,
                     supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null,
                     placeholder = { Text("Buscar procedimento...") }
@@ -568,7 +572,7 @@ fun AppointmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics { contentDescription = "campo_data_agendamento" })
                 }
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
@@ -579,7 +583,7 @@ fun AppointmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.Schedule, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showTimePicker = true })
+                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics { contentDescription = "campo_horario_agendamento" })
                 }
             }
 
@@ -593,7 +597,7 @@ fun AppointmentFormScreen(
                     readOnly = true,
                     label = { Text("Status") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showStatusDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_status_agendamento" }
                 )
                 ExposedDropdownMenu(
                     expanded = showStatusDropdown,
@@ -610,14 +614,14 @@ fun AppointmentFormScreen(
                     value = durationMinutes.toString(),
                     onValueChange = { it.toIntOrNull()?.let { v -> if (v in 10..480) durationMinutes = v } },
                     label = { Text("Duração (min)") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_duracao_agendamento" },
                     trailingIcon = { Text("min", style = MaterialTheme.typography.labelMedium) }
                 )
                 OutlinedTextField(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Valor (R$)") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_valor_agendamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -634,14 +638,18 @@ fun AppointmentFormScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(checked = isPaid, onCheckedChange = { isPaid = it })
+                Switch(
+                    checked = isPaid,
+                    onCheckedChange = { isPaid = it },
+                    modifier = Modifier.semantics { contentDescription = "switch_consulta_paga" }
+                )
             }
 
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Observações") },
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier.fillMaxWidth().height(100.dp).semantics { contentDescription = "campo_observacoes_agendamento" },
                 maxLines = 4
             )
 
@@ -764,7 +772,8 @@ fun AppointmentFormScreen(
                     }
                     Switch(
                         checked = syncWithCalendar,
-                        onCheckedChange = { syncWithCalendar = it }
+                        onCheckedChange = { syncWithCalendar = it },
+                        modifier = Modifier.semantics { contentDescription = "switch_google_calendar" }
                     )
                 }
             }

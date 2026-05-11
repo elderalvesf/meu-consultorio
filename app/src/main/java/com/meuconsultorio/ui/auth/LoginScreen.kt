@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -88,7 +90,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier.fillMaxSize().padding(32.dp).semantics { contentDescription = "login_screen" },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -117,7 +119,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
             onValueChange = { email = it; errorMessage = null },
             label = { Text("Email") },
             leadingIcon = { Icon(Icons.Filled.Email, null) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_email" },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -141,7 +143,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_senha" },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
@@ -165,7 +167,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
 
         Button(
             onClick = { submit() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "btn_entrar" },
             enabled = !isLoading
         ) {
             if (isLoading) {
@@ -186,7 +188,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
 
         OutlinedButton(
             onClick = { signInWithGoogle() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "btn_entrar_google" },
             enabled = !isLoading
         ) {
             Icon(

@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,6 +66,7 @@ fun PatientFormScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
+                modifier = Modifier.semantics { contentDescription = "btn_salvar_paciente" },
                 onClick = {
                     nameError = name.isBlank()
                     phoneError = phone.isBlank()
@@ -98,7 +101,7 @@ fun PatientFormScreen(
                 value = name,
                 onValueChange = { name = it; nameError = false },
                 label = { Text("Nome completo *") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_nome_paciente" },
                 isError = nameError,
                 supportingText = if (nameError) ({ Text("Nome é obrigatório") }) else null,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -119,7 +122,7 @@ fun PatientFormScreen(
                 value = phone,
                 onValueChange = { if (it.length <= 15) phone = it; phoneError = false },
                 label = { Text("Telefone / WhatsApp *") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_telefone_paciente" },
                 isError = phoneError,
                 supportingText = if (phoneError) ({ Text("Telefone é obrigatório") }) else null,
                 placeholder = { Text("(00) 00000-0000") },

@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -232,6 +234,7 @@ fun TreatmentFormScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
+                modifier = Modifier.semantics { contentDescription = "btn_salvar_tratamento" },
                 onClick = {
                     patientError = selectedPatientId == null
                     procedureError = procedure.isBlank()
@@ -257,7 +260,8 @@ fun TreatmentFormScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)
+                .semantics { contentDescription = "tratamento_form_screen" },
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ExposedDropdownMenuBox(expanded = showPatientDropdown, onExpandedChange = { showPatientDropdown = it }) {
@@ -267,7 +271,7 @@ fun TreatmentFormScreen(
                     readOnly = true,
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_paciente_tratamento" },
                     isError = patientError,
                     supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null
                 )
@@ -288,7 +292,7 @@ fun TreatmentFormScreen(
                     readOnly = true,
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_procedimento_tratamento" },
                     isError = procedureError,
                     supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null
                 )
@@ -317,7 +321,7 @@ fun TreatmentFormScreen(
                 value = tooth,
                 onValueChange = { tooth = it },
                 label = { Text("Dente(s)") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_dente" },
                 placeholder = { Text("ex: 14, 15") },
                 singleLine = true
             )
@@ -327,7 +331,7 @@ fun TreatmentFormScreen(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Valor (R$)") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_valor_tratamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -335,7 +339,7 @@ fun TreatmentFormScreen(
                     value = costText,
                     onValueChange = { costText = it },
                     label = { Text("Custo (R$)") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_custo_tratamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -362,7 +366,7 @@ fun TreatmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showDatePicker = true })
+                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics { contentDescription = "campo_data_tratamento" })
                 }
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
@@ -373,7 +377,7 @@ fun TreatmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.AccessTime, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showTimePicker = true })
+                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics { contentDescription = "campo_horario_tratamento" })
                 }
             }
 
@@ -384,7 +388,7 @@ fun TreatmentFormScreen(
                     readOnly = true,
                     label = { Text("Status") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showStatusDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_status_tratamento" }
                 )
                 ExposedDropdownMenu(expanded = showStatusDropdown, onDismissRequest = { showStatusDropdown = false }) {
                     TreatmentStatus.entries.forEach { s ->
@@ -397,7 +401,7 @@ fun TreatmentFormScreen(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Descrição / Observações") },
-                modifier = Modifier.fillMaxWidth().height(100.dp),
+                modifier = Modifier.fillMaxWidth().height(100.dp).semantics { contentDescription = "campo_descricao_tratamento" },
                 maxLines = 4
             )
 
