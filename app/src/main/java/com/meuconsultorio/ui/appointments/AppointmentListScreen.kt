@@ -31,11 +31,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.AppointmentStatus
+import com.meuconsultorio.data.entity.Compromisso
 import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
+import com.meuconsultorio.viewmodel.CompromissoViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
 import java.text.SimpleDateFormat
@@ -46,14 +48,19 @@ import java.util.*
 fun AppointmentListScreen(
     onAddAppointment: () -> Unit,
     onAddTreatment: () -> Unit,
+    onAddCompromisso: () -> Unit,
     onEditAppointment: (Long) -> Unit,
     onEditTreatment: (Long) -> Unit,
+    onEditCompromisso: (Long) -> Unit,
     onPatientClick: (Long) -> Unit,
     viewModel: AppointmentViewModel = hiltViewModel(),
     patientViewModel: PatientViewModel = hiltViewModel(),
-    treatmentViewModel: TreatmentViewModel = hiltViewModel()
+    treatmentViewModel: TreatmentViewModel = hiltViewModel(),
+    compromissoViewModel: CompromissoViewModel = hiltViewModel()
 ) {
     val allAppointments by viewModel.allAppointments.collectAsState()
+    val allTreatments by treatmentViewModel.allTreatments.collectAsState()
+    val allCompromissos by compromissoViewModel.allCompromissos.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val todayAppointments by viewModel.todayAppointments.collectAsState()
@@ -67,9 +74,24 @@ fun AppointmentListScreen(
     var fabExpanded by remember { mutableStateOf(false) }
 
     val dayKeyFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val appointmentsByDay = remember(allAppointments) {
-        allAppointments.groupBy { dayKeyFmt.format(Date(it.dateTime)) }
-            .mapValues { it.value.size }
+
+    // Combined events-per-day for dot indicators (appointments + treatments + compromissos)
+    val eventsByDay = remember(allAppointments, allTreatments, allCompromissos) {
+        val map = mutableMapOf<String, Int>()
+        allAppointments.forEach { map[dayKeyFmt.format(Date(it.dateTime))] = (map[dayKeyFmt.format(Date(it.dateTime))] ?: 0) + 1 }
+        allTreatments.forEach { map[dayKeyFmt.format(Date(it.date))] = (map[dayKeyFmt.format(Date(it.date))] ?: 0) + 1 }
+        allCompromissos.forEach { map[dayKeyFmt.format(Date(it.date))] = (map[dayKeyFmt.format(Date(it.date))] ?: 0) + 1 }
+        map as Map<String, Int>
+    }
+
+    // Filter compromissos for selected day
+    val compromissosForDay = remember(allCompromissos, selectedDate) {
+        val cal = Calendar.getInstance().apply { timeInMillis = selectedDate }
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        val start = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
+        val end = cal.timeInMillis
+        allCompromissos.filter { it.date in start..end }
     }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
@@ -119,6 +141,29 @@ fun AppointmentListScreen(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 2.dp
+                            ) {
+                                Text(
+                                    "Compromisso",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            SmallFloatingActionButton(
+                                onClick = { fabExpanded = false; onAddCompromisso() },
+                                containerColor = Color(0xFF9C27B0).copy(alpha = 0.2f),
+                                modifier = Modifier.semantics { contentDescription = "fab_novo_compromisso" }
+                            ) {
+                                Icon(Icons.Filled.Event, contentDescription = null, tint = Color(0xFF9C27B0))
+                            }
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -205,7 +250,7 @@ fun AppointmentListScreen(
             if (weeklyView) {
                 WeekStrip(
                     selectedDate = selectedDate,
-                    appointmentsByDay = appointmentsByDay,
+                    eventsByDay = eventsByDay,
                     onDaySelected = { viewModel.selectDate(it) },
                     onPrevWeek = {
                         viewModel.selectDate(Calendar.getInstance().apply {
@@ -244,7 +289,8 @@ fun AppointmentListScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold)
                             val treatLabel = if (treatmentsForDay.isNotEmpty()) " · ${treatmentsForDay.size} tratamento(s)" else ""
-                            Text("${displayedAppointments.size} consulta(s)$treatLabel",
+                            val compLabel = if (compromissosForDay.isNotEmpty()) " · ${compromissosForDay.size} compromisso(s)" else ""
+                            Text("${displayedAppointments.size} consulta(s)$treatLabel$compLabel",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton(onClick = { showDatePicker = true }) {
@@ -278,12 +324,15 @@ fun AppointmentListScreen(
                 DayTimelineView(
                     appointments = displayedAppointments,
                     treatments = treatmentsForDay,
+                    compromissos = compromissosForDay,
                     patientMap = patientMap,
                     selectedDate = selectedDate,
                     onEdit = onEditAppointment,
                     onDelete = { viewModel.deleteAppointment(it) },
                     onEditTreatment = onEditTreatment,
                     onDeleteTreatment = { treatmentViewModel.deleteTreatment(it) },
+                    onEditCompromisso = onEditCompromisso,
+                    onDeleteCompromisso = { compromissoViewModel.deleteCompromisso(it) },
                     onPatientClick = onPatientClick,
                     onStatusChange = { appt, status -> viewModel.updateStatus(appt, status) }
                 )
@@ -313,10 +362,17 @@ private data class TreatBlock(
     val totalColumns: Int
 )
 
+private data class CompromissoBlock(
+    val compromisso: Compromisso,
+    val column: Int = 0,
+    val totalColumns: Int = 1
+)
+
 private fun computeTimelineLayout(
     appointments: List<Appointment>,
-    treatments: List<Treatment>
-): Pair<List<ApptBlock>, List<TreatBlock>> {
+    treatments: List<Treatment>,
+    compromissos: List<Compromisso>
+): Triple<List<ApptBlock>, List<TreatBlock>, List<CompromissoBlock>> {
     val mergedIds = mutableSetOf<Long>()
 
     val apptBlocks = appointments.map { appt ->
@@ -334,16 +390,22 @@ private fun computeTimelineLayout(
         .filter { it.id !in mergedIds }
         .map { TreatBlock(it, 0, 1) }
 
-    data class Interval(val start: Long, val end: Long, val apptIdx: Int?, val treatIdx: Int?)
+    val compromissoBlocks = compromissos.map { CompromissoBlock(it) }
+
+    data class Interval(val start: Long, val end: Long, val apptIdx: Int?, val treatIdx: Int?, val compIdx: Int?)
 
     val intervals = mutableListOf<Interval>()
     apptBlocks.forEachIndexed { i, b ->
         val start = truncateToMin(b.appointment.dateTime)
-        intervals += Interval(start, start + b.appointment.durationMinutes * 60_000L, i, null)
+        intervals += Interval(start, start + b.appointment.durationMinutes * 60_000L, i, null, null)
     }
     treatBlocks.forEachIndexed { i, b ->
         val start = truncateToMin(b.treatment.date)
-        intervals += Interval(start, start + TREAT_DURATION_MS, null, i)
+        intervals += Interval(start, start + TREAT_DURATION_MS, null, i, null)
+    }
+    compromissoBlocks.forEachIndexed { i, b ->
+        val start = truncateToMin(b.compromisso.date)
+        intervals += Interval(start, start + TREAT_DURATION_MS, null, null, i)
     }
     intervals.sortBy { it.start }
 
@@ -368,26 +430,31 @@ private fun computeTimelineLayout(
 
     val finalAppts = apptBlocks.toMutableList()
     val finalTreats = treatBlocks.toMutableList()
+    val finalComps = compromissoBlocks.toMutableList()
     intervals.forEachIndexed { i, iv ->
-        if (iv.apptIdx != null)
-            finalAppts[iv.apptIdx] = finalAppts[iv.apptIdx].copy(column = cols[i], totalColumns = totalCols[i])
-        else if (iv.treatIdx != null)
-            finalTreats[iv.treatIdx] = finalTreats[iv.treatIdx].copy(column = cols[i], totalColumns = totalCols[i])
+        when {
+            iv.apptIdx != null -> finalAppts[iv.apptIdx] = finalAppts[iv.apptIdx].copy(column = cols[i], totalColumns = totalCols[i])
+            iv.treatIdx != null -> finalTreats[iv.treatIdx] = finalTreats[iv.treatIdx].copy(column = cols[i], totalColumns = totalCols[i])
+            iv.compIdx != null -> finalComps[iv.compIdx] = finalComps[iv.compIdx].copy(column = cols[i], totalColumns = totalCols[i])
+        }
     }
 
-    return Pair(finalAppts, finalTreats)
+    return Triple(finalAppts, finalTreats, finalComps)
 }
 
 @Composable
 fun DayTimelineView(
     appointments: List<Appointment>,
     treatments: List<Treatment>,
+    compromissos: List<Compromisso>,
     patientMap: Map<Long, Patient>,
     selectedDate: Long,
     onEdit: (Long) -> Unit,
     onDelete: (Appointment) -> Unit,
     onEditTreatment: (Long) -> Unit,
     onDeleteTreatment: (Treatment) -> Unit,
+    onEditCompromisso: (Long) -> Unit,
+    onDeleteCompromisso: (Compromisso) -> Unit,
     onPatientClick: (Long) -> Unit,
     onStatusChange: (Appointment, AppointmentStatus) -> Unit
 ) {
@@ -401,8 +468,8 @@ fun DayTimelineView(
     val now = remember { Calendar.getInstance() }
     val currentMinutesFromStart = (now.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + now.get(Calendar.MINUTE)
 
-    LaunchedEffect(appointments, treatments, selectedDate) {
-        val allTimes = appointments.map { it.dateTime } + treatments.map { it.date }
+    LaunchedEffect(appointments, treatments, compromissos, selectedDate) {
+        val allTimes = appointments.map { it.dateTime } + treatments.map { it.date } + compromissos.map { it.date }
         val targetHour = if (allTimes.isNotEmpty()) {
             Calendar.getInstance().apply { timeInMillis = allTimes.min() }
                 .get(Calendar.HOUR_OF_DAY) - 1
@@ -416,8 +483,8 @@ fun DayTimelineView(
         scrollState.animateScrollTo(px)
     }
 
-    val (apptBlocks, treatBlocks) = remember(appointments, treatments) {
-        computeTimelineLayout(appointments, treatments)
+    val (apptBlocks, treatBlocks, compBlocks) = remember(appointments, treatments, compromissos) {
+        computeTimelineLayout(appointments, treatments, compromissos)
     }
 
     Row(
@@ -508,7 +575,7 @@ fun DayTimelineView(
                 )
             }
 
-            // Standalone treatment blocks (different patient or no overlapping appointment)
+            // Standalone treatment blocks
             treatBlocks.forEach { block ->
                 val t = block.treatment
                 val cal = Calendar.getInstance().apply { timeInMillis = t.date }
@@ -528,6 +595,27 @@ fun DayTimelineView(
                     onEdit = { onEditTreatment(t.id) },
                     onDelete = { onDeleteTreatment(t) },
                     onPatientClick = { patientMap[t.patientId]?.let { onPatientClick(it.id) } }
+                )
+            }
+
+            // Compromisso blocks
+            compBlocks.forEach { block ->
+                val c = block.compromisso
+                val cal = Calendar.getInstance().apply { timeInMillis = c.date }
+                val minutesFromStart = (cal.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + cal.get(Calendar.MINUTE)
+                val topOffset = (hourHeight * (minutesFromStart.toFloat() / 60f)).coerceAtLeast(0.dp)
+                val colWidth = availableWidth / block.totalColumns
+                val xOffset = colWidth * block.column
+
+                CompromissoTimelineItem(
+                    compromisso = c,
+                    modifier = Modifier
+                        .width(colWidth)
+                        .offset(x = xOffset, y = topOffset)
+                        .height(48.dp)
+                        .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
+                    onEdit = { onEditCompromisso(c.id) },
+                    onDelete = { onDeleteCompromisso(c) }
                 )
             }
         }
@@ -690,7 +778,7 @@ fun AppointmentTimelineItem(
 @Composable
 fun WeekStrip(
     selectedDate: Long,
-    appointmentsByDay: Map<String, Int>,
+    eventsByDay: Map<String, Int>,
     onDaySelected: (Long) -> Unit,
     onPrevWeek: () -> Unit,
     onNextWeek: () -> Unit
@@ -730,7 +818,7 @@ fun WeekStrip(
                 val key = dayKeyFmt.format(Date(dayMillis))
                 val isSelected = key == selectedKey
                 val isToday = key == todayKey
-                val count = appointmentsByDay[key] ?: 0
+                val count = eventsByDay[key] ?: 0
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -964,6 +1052,82 @@ fun TreatmentTimelineItem(
                 onClick = { showMenu = false; onPatientClick() }
             )
             HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("Editar") },
+                leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                onClick = { showMenu = false; onEdit() }
+            )
+            DropdownMenuItem(
+                text = { Text("Excluir", color = MaterialTheme.colorScheme.error) },
+                leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                onClick = { showMenu = false; showDeleteDialog = true }
+            )
+        }
+    }
+}
+
+@Composable
+fun CompromissoTimelineItem(
+    compromisso: Compromisso,
+    modifier: Modifier = Modifier,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val color = Color(0xFF9C27B0)
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir compromisso") },
+            text = { Text("Deseja excluir este compromisso? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Box(modifier) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(4.dp))
+                .clickable { showMenu = true }
+                .semantics(mergeDescendants = true) { contentDescription = "card_compromisso" }
+        ) {
+            Box(Modifier.width(4.dp).fillMaxHeight().background(color))
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(color.copy(alpha = 0.12f))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "${compromisso.date.toFormattedTime()} · ${compromisso.name}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (compromisso.description.isNotBlank()) {
+                    Text(
+                        compromisso.description,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
             DropdownMenuItem(
                 text = { Text("Editar") },
                 leadingIcon = { Icon(Icons.Filled.Edit, null) },

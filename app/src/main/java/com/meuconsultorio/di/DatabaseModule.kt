@@ -3,6 +3,7 @@ package com.meuconsultorio.di
 import android.content.Context
 import androidx.room.Room
 import com.meuconsultorio.data.dao.AppointmentDao
+import com.meuconsultorio.data.dao.CompromissoDao
 import com.meuconsultorio.data.dao.PatientDao
 import com.meuconsultorio.data.dao.PaymentDao
 import com.meuconsultorio.data.dao.ProntuarioDao
@@ -23,7 +24,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "meu_consultorio.db")
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8, AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10)
             .build()
 
     @Provides
@@ -40,4 +41,7 @@ object DatabaseModule {
 
     @Provides
     fun provideProntuarioDao(db: AppDatabase): ProntuarioDao = db.prontuarioDao()
+
+    @Provides
+    fun provideCompromissoDao(db: AppDatabase): CompromissoDao = db.compromissoDao()
 }

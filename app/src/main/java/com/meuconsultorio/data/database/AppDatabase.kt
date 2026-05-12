@@ -5,19 +5,21 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.meuconsultorio.data.dao.AppointmentDao
+import com.meuconsultorio.data.dao.CompromissoDao
 import com.meuconsultorio.data.dao.PatientDao
 import com.meuconsultorio.data.dao.PaymentDao
 import com.meuconsultorio.data.dao.ProntuarioDao
 import com.meuconsultorio.data.dao.TreatmentDao
 import com.meuconsultorio.data.entity.Appointment
+import com.meuconsultorio.data.entity.Compromisso
 import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.data.entity.Payment
 import com.meuconsultorio.data.entity.ProntuarioEntry
 import com.meuconsultorio.data.entity.Treatment
 
 @Database(
-    entities = [Patient::class, Appointment::class, Treatment::class, Payment::class, ProntuarioEntry::class],
-    version = 9,
+    entities = [Patient::class, Appointment::class, Treatment::class, Payment::class, ProntuarioEntry::class, Compromisso::class],
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun treatmentDao(): TreatmentDao
     abstract fun paymentDao(): PaymentDao
     abstract fun prontuarioDao(): ProntuarioDao
+    abstract fun compromissoDao(): CompromissoDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -107,6 +110,21 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "ALTER TABLE `appointments` ADD COLUMN `attachments` TEXT NOT NULL DEFAULT ''"
+                )
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `compromissos` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `description` TEXT NOT NULL DEFAULT '',
+                        `date` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
                 )
             }
         }

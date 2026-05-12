@@ -474,7 +474,6 @@ fun AppointmentFormScreen(
                     onValueChange = {
                         patientNameText = it
                         selectedPatientId = null
-                        showPatientDropdown = true
                     },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
@@ -526,7 +525,6 @@ fun AppointmentFormScreen(
                     value = procedureType,
                     onValueChange = {
                         procedureType = it
-                        showProcedureDropdown = true
                     },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },

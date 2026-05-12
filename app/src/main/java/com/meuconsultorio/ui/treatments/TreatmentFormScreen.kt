@@ -88,6 +88,7 @@ fun TreatmentFormScreen(
     val patients by patientViewModel.patients.collectAsState()
 
     var selectedPatientId by remember { mutableStateOf(preselectedPatientId) }
+    var patientNameText by remember { mutableStateOf("") }
     var procedure by remember { mutableStateOf("") }
     var tooth by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -120,10 +121,11 @@ fun TreatmentFormScreen(
         if (treatmentId != null) viewModel.loadTreatment(treatmentId)
     }
 
-    LaunchedEffect(selectedTreatment) {
+    LaunchedEffect(selectedTreatment, patients) {
         selectedTreatment?.let { t ->
             if (treatmentId != null) {
                 selectedPatientId = t.patientId
+                patientNameText = patients.find { it.id == t.patientId }?.name ?: ""
                 procedure = t.procedure
                 tooth = t.tooth
                 description = t.description
@@ -266,20 +268,34 @@ fun TreatmentFormScreen(
         ) {
             ExposedDropdownMenuBox(expanded = showPatientDropdown, onExpandedChange = { showPatientDropdown = it }) {
                 OutlinedTextField(
-                    value = patients.find { it.id == selectedPatientId }?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
+                    value = patientNameText,
+                    onValueChange = { patientNameText = it; selectedPatientId = null },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_paciente_tratamento" },
                     isError = patientError,
-                    supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null
+                    supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null,
+                    placeholder = { Text("Buscar paciente...") }
                 )
                 ExposedDropdownMenu(expanded = showPatientDropdown, onDismissRequest = { showPatientDropdown = false }) {
-                    patients.forEach { patient ->
+                    val filteredPatients = patients.filter {
+                        patientNameText.isBlank() || it.name.contains(patientNameText, ignoreCase = true)
+                    }
+                    filteredPatients.forEach { patient ->
                         DropdownMenuItem(
                             text = { Text(patient.name) },
-                            onClick = { selectedPatientId = patient.id; patientError = false; showPatientDropdown = false }
+                            onClick = {
+                                selectedPatientId = patient.id
+                                patientNameText = patient.name
+                                patientError = false
+                                showPatientDropdown = false
+                            }
+                        )
+                    }
+                    if (filteredPatients.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("Nenhum paciente encontrado", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            onClick = {}
                         )
                     }
                 }
@@ -288,13 +304,13 @@ fun TreatmentFormScreen(
             ExposedDropdownMenuBox(expanded = showProcedureDropdown, onExpandedChange = { showProcedureDropdown = it }) {
                 OutlinedTextField(
                     value = procedure,
-                    onValueChange = {},
-                    readOnly = true,
+                    onValueChange = { procedure = it; procedureError = false },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
                     modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_procedimento_tratamento" },
                     isError = procedureError,
-                    supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null
+                    supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null,
+                    placeholder = { Text("Buscar procedimento...") }
                 )
                 ExposedDropdownMenu(expanded = showProcedureDropdown, onDismissRequest = { showProcedureDropdown = false }) {
                     DropdownMenuItem(
@@ -302,7 +318,10 @@ fun TreatmentFormScreen(
                         onClick = { showProcedureDropdown = false; showNewProcedureDialog = true }
                     )
                     HorizontalDivider()
-                    dentalTreatments.sorted().forEach { proc ->
+                    val filteredProcedures = dentalTreatments.sorted().filter {
+                        procedure.isBlank() || it.contains(procedure, ignoreCase = true)
+                    }
+                    filteredProcedures.forEach { proc ->
                         DropdownMenuItem(
                             text = { Text(proc) },
                             onClick = {
@@ -312,6 +331,12 @@ fun TreatmentFormScreen(
                                 procedureError = false
                                 showProcedureDropdown = false
                             }
+                        )
+                    }
+                    if (filteredProcedures.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("Nenhum procedimento encontrado", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            onClick = {}
                         )
                     }
                 }
