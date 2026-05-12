@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -276,7 +278,8 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
             ) {
                 bottomNavItems.forEach { screen ->
                     NavigationRailItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.label) },
+                        modifier = Modifier.semantics { contentDescription = "nav_${screen.route}" },
+                        icon = { Icon(screen.icon, contentDescription = null) },
                         label = { Text(screen.label) },
                         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
@@ -300,7 +303,8 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                     NavigationBar {
                         bottomNavItems.forEach { screen ->
                             NavigationBarItem(
-                                icon = { Icon(screen.icon, contentDescription = screen.label) },
+                                modifier = Modifier.semantics { contentDescription = "nav_${screen.route}" },
+                                icon = { Icon(screen.icon, contentDescription = null) },
                                 label = { Text(screen.label) },
                                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                                 onClick = {
