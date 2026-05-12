@@ -272,7 +272,7 @@ fun TreatmentFormScreen(
                     onValueChange = { patientNameText = it; selectedPatientId = null },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_paciente_tratamento" },
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_paciente_tratamento" },
                     isError = patientError,
                     supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null,
                     placeholder = { Text("Buscar paciente...") }
@@ -307,7 +307,7 @@ fun TreatmentFormScreen(
                     onValueChange = { procedure = it; procedureError = false },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_procedimento_tratamento" },
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_procedimento_tratamento" },
                     isError = procedureError,
                     supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null,
                     placeholder = { Text("Buscar procedimento...") }
@@ -346,7 +346,7 @@ fun TreatmentFormScreen(
                 value = tooth,
                 onValueChange = { tooth = it },
                 label = { Text("Dente(s)") },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_dente" },
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "campo_dente" },
                 placeholder = { Text("ex: 14, 15") },
                 singleLine = true
             )
@@ -356,7 +356,7 @@ fun TreatmentFormScreen(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Valor (R$)") },
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_valor_tratamento" },
+                    modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "campo_valor_tratamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -364,7 +364,7 @@ fun TreatmentFormScreen(
                     value = costText,
                     onValueChange = { costText = it },
                     label = { Text("Custo (R$)") },
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_custo_tratamento" },
+                    modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "campo_custo_tratamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -391,7 +391,7 @@ fun TreatmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics { contentDescription = "campo_data_tratamento" })
+                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics(mergeDescendants = true) { contentDescription = "campo_data_tratamento" })
                 }
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
@@ -402,7 +402,7 @@ fun TreatmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.AccessTime, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics { contentDescription = "campo_horario_tratamento" })
+                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics(mergeDescendants = true) { contentDescription = "campo_horario_tratamento" })
                 }
             }
 
@@ -413,7 +413,7 @@ fun TreatmentFormScreen(
                     readOnly = true,
                     label = { Text("Status") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showStatusDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_status_tratamento" }
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_status_tratamento" }
                 )
                 ExposedDropdownMenu(expanded = showStatusDropdown, onDismissRequest = { showStatusDropdown = false }) {
                     TreatmentStatus.entries.forEach { s ->
@@ -426,7 +426,7 @@ fun TreatmentFormScreen(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Descrição / Observações") },
-                modifier = Modifier.fillMaxWidth().height(100.dp).semantics { contentDescription = "campo_descricao_tratamento" },
+                modifier = Modifier.fillMaxWidth().height(100.dp).semantics(mergeDescendants = true) { contentDescription = "campo_descricao_tratamento" },
                 maxLines = 4
             )
 

@@ -477,7 +477,7 @@ fun AppointmentFormScreen(
                     },
                     label = { Text("Paciente *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPatientDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_paciente_agendamento" },
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_paciente_agendamento" },
                     isError = patientError,
                     supportingText = if (patientError) ({ Text("Selecione um paciente") }) else null,
                     placeholder = { Text("Buscar paciente...") }
@@ -528,7 +528,7 @@ fun AppointmentFormScreen(
                     },
                     label = { Text("Procedimento *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProcedureDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_procedimento_agendamento" },
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_procedimento_agendamento" },
                     isError = procedureError,
                     supportingText = if (procedureError) ({ Text("Informe o procedimento") }) else null,
                     placeholder = { Text("Buscar procedimento...") }
@@ -570,7 +570,7 @@ fun AppointmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.CalendarMonth, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics { contentDescription = "campo_data_agendamento" })
+                    Box(Modifier.matchParentSize().clickable { showDatePicker = true }.semantics(mergeDescendants = true) { contentDescription = "campo_data_agendamento" })
                 }
                 Box(Modifier.weight(1f)) {
                     OutlinedTextField(
@@ -581,7 +581,7 @@ fun AppointmentFormScreen(
                         trailingIcon = { Icon(Icons.Filled.Schedule, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics { contentDescription = "campo_horario_agendamento" })
+                    Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics(mergeDescendants = true) { contentDescription = "campo_horario_agendamento" })
                 }
             }
 
@@ -595,7 +595,7 @@ fun AppointmentFormScreen(
                     readOnly = true,
                     label = { Text("Status") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showStatusDropdown) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics { contentDescription = "campo_status_agendamento" }
+                    modifier = Modifier.fillMaxWidth().menuAnchor().semantics(mergeDescendants = true) { contentDescription = "campo_status_agendamento" }
                 )
                 ExposedDropdownMenu(
                     expanded = showStatusDropdown,
@@ -612,14 +612,14 @@ fun AppointmentFormScreen(
                     value = durationMinutes.toString(),
                     onValueChange = { it.toIntOrNull()?.let { v -> if (v in 10..480) durationMinutes = v } },
                     label = { Text("Duração (min)") },
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_duracao_agendamento" },
+                    modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "campo_duracao_agendamento" },
                     trailingIcon = { Text("min", style = MaterialTheme.typography.labelMedium) }
                 )
                 OutlinedTextField(
                     value = priceText,
                     onValueChange = { priceText = it },
                     label = { Text("Valor (R$)") },
-                    modifier = Modifier.weight(1f).semantics { contentDescription = "campo_valor_agendamento" },
+                    modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "campo_valor_agendamento" },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -647,7 +647,7 @@ fun AppointmentFormScreen(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Observações") },
-                modifier = Modifier.fillMaxWidth().height(100.dp).semantics { contentDescription = "campo_observacoes_agendamento" },
+                modifier = Modifier.fillMaxWidth().height(100.dp).semantics(mergeDescendants = true) { contentDescription = "campo_observacoes_agendamento" },
                 maxLines = 4
             )
 

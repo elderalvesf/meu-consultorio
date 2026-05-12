@@ -119,7 +119,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
             onValueChange = { email = it; errorMessage = null },
             label = { Text("Email") },
             leadingIcon = { Icon(Icons.Filled.Email, null) },
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_email" },
+            modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "campo_email" },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -143,7 +143,7 @@ fun LoginScreen(viewModel: AuthViewModel) {
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_senha" },
+            modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "campo_senha" },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done

@@ -171,7 +171,7 @@ fun CompromissoFormScreen(
                 value = name,
                 onValueChange = { name = it; nameError = false },
                 label = { Text("Nome *") },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "campo_nome_compromisso" },
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "campo_nome_compromisso" },
                 isError = nameError,
                 supportingText = if (nameError) ({ Text("Informe o nome do compromisso") }) else null,
                 placeholder = { Text("ex: Reunião com fornecedor") },
@@ -207,7 +207,7 @@ fun CompromissoFormScreen(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Descrição") },
-                modifier = Modifier.fillMaxWidth().height(120.dp).semantics { contentDescription = "campo_descricao_compromisso" },
+                modifier = Modifier.fillMaxWidth().height(120.dp).semantics(mergeDescendants = true) { contentDescription = "campo_descricao_compromisso" },
                 placeholder = { Text("Detalhes do compromisso (opcional)") },
                 maxLines = 5
             )

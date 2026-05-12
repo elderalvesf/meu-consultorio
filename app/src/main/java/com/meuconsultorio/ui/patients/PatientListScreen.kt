@@ -55,7 +55,7 @@ fun PatientListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .semantics { contentDescription = "campo_busca_paciente" },
+                    .semantics(mergeDescendants = true) { contentDescription = "campo_busca_paciente" },
                 placeholder = { Text("Buscar por nome, CPF ou telefone...") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
