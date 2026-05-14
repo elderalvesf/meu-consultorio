@@ -19,7 +19,7 @@ import com.meuconsultorio.data.entity.Treatment
 
 @Database(
     entities = [Patient::class, Appointment::class, Treatment::class, Payment::class, ProntuarioEntry::class, Compromisso::class],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -126,6 +126,12 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `compromissos` ADD COLUMN `endDate` INTEGER")
             }
         }
     }

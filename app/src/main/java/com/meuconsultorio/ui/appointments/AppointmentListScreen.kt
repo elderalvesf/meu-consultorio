@@ -404,8 +404,10 @@ private fun computeTimelineLayout(
         intervals += Interval(start, start + TREAT_DURATION_MS, null, i, null)
     }
     compromissoBlocks.forEachIndexed { i, b ->
-        val start = truncateToMin(b.compromisso.date)
-        intervals += Interval(start, start + TREAT_DURATION_MS, null, null, i)
+        val c = b.compromisso
+        val start = truncateToMin(c.date)
+        val end = if (c.endDate != null) truncateToMin(c.endDate) else start + TREAT_DURATION_MS
+        intervals += Interval(start, end.coerceAtLeast(start + 15 * 60_000L), null, null, i)
     }
     intervals.sortBy { it.start }
 
@@ -604,6 +606,10 @@ fun DayTimelineView(
                 val cal = Calendar.getInstance().apply { timeInMillis = c.date }
                 val minutesFromStart = (cal.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + cal.get(Calendar.MINUTE)
                 val topOffset = (hourHeight * (minutesFromStart.toFloat() / 60f)).coerceAtLeast(0.dp)
+                val durationMinutes = if (c.endDate != null) {
+                    ((c.endDate - c.date) / 60_000L).toInt().coerceAtLeast(15)
+                } else 60
+                val blockHeight = (hourHeight * (durationMinutes.toFloat() / 60f)).coerceAtLeast(40.dp)
                 val colWidth = availableWidth / block.totalColumns
                 val xOffset = colWidth * block.column
 
@@ -612,7 +618,7 @@ fun DayTimelineView(
                     modifier = Modifier
                         .width(colWidth)
                         .offset(x = xOffset, y = topOffset)
-                        .height(48.dp)
+                        .height(blockHeight)
                         .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
                     onEdit = { onEditCompromisso(c.id) },
                     onDelete = { onDeleteCompromisso(c) }
@@ -1108,8 +1114,13 @@ fun CompromissoTimelineItem(
                     .padding(horizontal = 6.dp, vertical = 3.dp),
                 verticalArrangement = Arrangement.Center
             ) {
+                val timeLabel = if (compromisso.endDate != null) {
+                    "${compromisso.date.toFormattedTime()}–${compromisso.endDate.toFormattedTime()}"
+                } else {
+                    compromisso.date.toFormattedTime()
+                }
                 Text(
-                    "${compromisso.date.toFormattedTime()} · ${compromisso.name}",
+                    "$timeLabel · ${compromisso.name}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,

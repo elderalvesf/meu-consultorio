@@ -31,15 +31,21 @@ fun CompromissoFormScreen(
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var date by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var endDate by remember { mutableStateOf<Long?>(null) }
     var nameError by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = date)
     val timePickerState = rememberTimePickerState(
         initialHour = Calendar.getInstance().apply { timeInMillis = date }.get(Calendar.HOUR_OF_DAY),
         initialMinute = Calendar.getInstance().apply { timeInMillis = date }.get(Calendar.MINUTE)
+    )
+    val endTimePickerState = rememberTimePickerState(
+        initialHour = Calendar.getInstance().apply { timeInMillis = endDate ?: (date + 60 * 60_000L) }.get(Calendar.HOUR_OF_DAY),
+        initialMinute = Calendar.getInstance().apply { timeInMillis = endDate ?: (date + 60 * 60_000L) }.get(Calendar.MINUTE)
     )
 
     LaunchedEffect(compromissoId) {
@@ -52,6 +58,7 @@ fun CompromissoFormScreen(
                 name = c.name
                 description = c.description
                 date = c.date
+                endDate = c.endDate
             }
         }
     }
@@ -99,6 +106,32 @@ fun CompromissoFormScreen(
         )
     }
 
+    if (showEndTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showEndTimePicker = false },
+            title = { Text("Horário de término") },
+            text = { TimePicker(state = endTimePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = date
+                        set(Calendar.HOUR_OF_DAY, endTimePickerState.hour)
+                        set(Calendar.MINUTE, endTimePickerState.minute)
+                        set(Calendar.SECOND, 0)
+                    }
+                    endDate = cal.timeInMillis
+                    showEndTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    endDate = null
+                    showEndTimePicker = false
+                }) { Text("Remover") }
+            }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -122,6 +155,10 @@ fun CompromissoFormScreen(
             "${(cal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')}/${cal.get(Calendar.YEAR)}"
     val formattedTime = "${cal.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')}:" +
             "${cal.get(Calendar.MINUTE).toString().padStart(2, '0')}"
+    val formattedEndTime = endDate?.let {
+        val c = Calendar.getInstance().apply { timeInMillis = it }
+        "${c.get(Calendar.HOUR_OF_DAY).toString().padStart(2, '0')}:${c.get(Calendar.MINUTE).toString().padStart(2, '0')}"
+    } ?: ""
 
     Scaffold(
         topBar = {
@@ -147,7 +184,8 @@ fun CompromissoFormScreen(
                             id = compromissoId ?: 0L,
                             name = name.trim(),
                             description = description.trim(),
-                            date = date
+                            date = date,
+                            endDate = endDate
                         )
                         viewModel.saveCompromisso(c) { onSave() }
                     }
@@ -195,11 +233,27 @@ fun CompromissoFormScreen(
                         value = formattedTime,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Horário") },
+                        label = { Text("Início") },
                         trailingIcon = { Icon(Icons.Filled.Schedule, null) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Box(Modifier.matchParentSize().clickable { showTimePicker = true })
+                }
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f))
+                Box(Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = formattedEndTime,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Término (opcional)") },
+                        trailingIcon = { Icon(Icons.Filled.Schedule, null) },
+                        placeholder = { Text("--:--") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(Modifier.matchParentSize().clickable { showEndTimePicker = true })
                 }
             }
 

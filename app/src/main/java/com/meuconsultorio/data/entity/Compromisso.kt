@@ -8,5 +8,6 @@ data class Compromisso(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val description: String = "",
-    val date: Long = System.currentTimeMillis()
+    val date: Long = System.currentTimeMillis(),
+    val endDate: Long? = null
 )
