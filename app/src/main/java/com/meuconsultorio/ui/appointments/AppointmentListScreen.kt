@@ -401,7 +401,7 @@ private fun computeTimelineLayout(
     }
     treatBlocks.forEachIndexed { i, b ->
         val start = truncateToMin(b.treatment.date)
-        intervals += Interval(start, start + TREAT_DURATION_MS, null, i, null)
+        intervals += Interval(start, start + b.treatment.durationMinutes * 60_000L, null, i, null)
     }
     compromissoBlocks.forEachIndexed { i, b ->
         val c = b.compromisso
@@ -583,6 +583,7 @@ fun DayTimelineView(
                 val cal = Calendar.getInstance().apply { timeInMillis = t.date }
                 val minutesFromStart = (cal.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + cal.get(Calendar.MINUTE)
                 val topOffset = (hourHeight * (minutesFromStart.toFloat() / 60f)).coerceAtLeast(0.dp)
+                val blockHeight = (hourHeight * (t.durationMinutes.toFloat() / 60f)).coerceAtLeast(40.dp)
                 val colWidth = availableWidth / block.totalColumns
                 val xOffset = colWidth * block.column
 
@@ -592,7 +593,7 @@ fun DayTimelineView(
                     modifier = Modifier
                         .width(colWidth)
                         .offset(x = xOffset, y = topOffset)
-                        .height(48.dp)
+                        .height(blockHeight)
                         .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
                     onEdit = { onEditTreatment(t.id) },
                     onDelete = { onDeleteTreatment(t) },

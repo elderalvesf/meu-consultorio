@@ -95,6 +95,7 @@ fun TreatmentFormScreen(
     var costText by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var sessionsText by remember { mutableStateOf("") }
+    var durationHoursText by remember { mutableStateOf("1") }
     var isLaserterapia by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf(TreatmentStatus.EM_ANDAMENTO) }
     var date by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -132,6 +133,9 @@ fun TreatmentFormScreen(
                 costText = if (t.cost > 0) t.cost.toString() else ""
                 priceText = if (t.price > 0) t.price.toString() else ""
                 sessionsText = if (t.sessions > 0) t.sessions.toString() else ""
+                durationHoursText = if (t.durationMinutes > 0) (t.durationMinutes / 60.0).let {
+                    if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+                } else "1"
                 isLaserterapia = t.procedure in proceduresWithSessions
                 status = t.status
                 date = t.date
@@ -241,6 +245,7 @@ fun TreatmentFormScreen(
                     patientError = selectedPatientId == null
                     procedureError = procedure.isBlank()
                     if (!patientError && !procedureError) {
+                        val durationMinutes = ((durationHoursText.replace(",", ".").toDoubleOrNull() ?: 1.0) * 60).toInt().coerceAtLeast(15)
                         val treatment = Treatment(
                             id = treatmentId ?: 0L,
                             patientId = selectedPatientId!!,
@@ -250,6 +255,7 @@ fun TreatmentFormScreen(
                             cost = costText.replace(",", ".").toDoubleOrNull() ?: 0.0,
                             price = priceText.replace(",", ".").toDoubleOrNull() ?: 0.0,
                             sessions = if (isLaserterapia) sessionsText.toIntOrNull() ?: 0 else 0,
+                            durationMinutes = durationMinutes,
                             date = date,
                             status = status
                         )
@@ -405,6 +411,17 @@ fun TreatmentFormScreen(
                     Box(Modifier.matchParentSize().clickable { showTimePicker = true }.semantics(mergeDescendants = true) { contentDescription = "campo_horario_tratamento" })
                 }
             }
+
+            OutlinedTextField(
+                value = durationHoursText,
+                onValueChange = { durationHoursText = it },
+                label = { Text("Duração (horas)") },
+                placeholder = { Text("ex: 1 ou 1.5") },
+                modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "campo_duracao_tratamento" },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                supportingText = { Text("Mínimo 15 min. Ex: 0.5 = 30 min, 1 = 1h, 1.5 = 1h30") }
+            )
 
             ExposedDropdownMenuBox(expanded = showStatusDropdown, onExpandedChange = { showStatusDropdown = it }) {
                 OutlinedTextField(

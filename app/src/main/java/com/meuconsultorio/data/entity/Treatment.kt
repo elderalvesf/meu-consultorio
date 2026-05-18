@@ -26,6 +26,7 @@ data class Treatment(
     val cost: Double = 0.0,
     val price: Double = 0.0,
     val sessions: Int = 0,
+    val durationMinutes: Int = 60,
     val date: Long = System.currentTimeMillis(),
     val status: TreatmentStatus = TreatmentStatus.EM_ANDAMENTO
 )
