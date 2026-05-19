@@ -35,11 +35,14 @@ import com.meuconsultorio.data.entity.Compromisso
 import com.meuconsultorio.data.entity.Patient
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
+import com.meuconsultorio.data.entity.Turno
+import com.meuconsultorio.data.entity.TurnoStatus
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.CompromissoViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
+import com.meuconsultorio.viewmodel.TurnoViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,18 +52,22 @@ fun AppointmentListScreen(
     onAddAppointment: () -> Unit,
     onAddTreatment: () -> Unit,
     onAddCompromisso: () -> Unit,
+    onAddTurno: () -> Unit,
     onEditAppointment: (Long) -> Unit,
     onEditTreatment: (Long) -> Unit,
     onEditCompromisso: (Long) -> Unit,
+    onEditTurno: (Long) -> Unit,
     onPatientClick: (Long) -> Unit,
     viewModel: AppointmentViewModel = hiltViewModel(),
     patientViewModel: PatientViewModel = hiltViewModel(),
     treatmentViewModel: TreatmentViewModel = hiltViewModel(),
-    compromissoViewModel: CompromissoViewModel = hiltViewModel()
+    compromissoViewModel: CompromissoViewModel = hiltViewModel(),
+    turnoViewModel: TurnoViewModel = hiltViewModel()
 ) {
     val allAppointments by viewModel.allAppointments.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val allCompromissos by compromissoViewModel.allCompromissos.collectAsState()
+    val allTurnos by turnoViewModel.allTurnos.collectAsState()
     val patients by patientViewModel.patients.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val todayAppointments by viewModel.todayAppointments.collectAsState()
@@ -75,12 +82,13 @@ fun AppointmentListScreen(
 
     val dayKeyFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
 
-    // Combined events-per-day for dot indicators (appointments + treatments + compromissos)
-    val eventsByDay = remember(allAppointments, allTreatments, allCompromissos) {
+    // Combined events-per-day for dot indicators (appointments + treatments + compromissos + turnos)
+    val eventsByDay = remember(allAppointments, allTreatments, allCompromissos, allTurnos) {
         val map = mutableMapOf<String, Int>()
         allAppointments.forEach { map[dayKeyFmt.format(Date(it.dateTime))] = (map[dayKeyFmt.format(Date(it.dateTime))] ?: 0) + 1 }
         allTreatments.forEach { map[dayKeyFmt.format(Date(it.date))] = (map[dayKeyFmt.format(Date(it.date))] ?: 0) + 1 }
         allCompromissos.forEach { map[dayKeyFmt.format(Date(it.date))] = (map[dayKeyFmt.format(Date(it.date))] ?: 0) + 1 }
+        allTurnos.forEach { map[dayKeyFmt.format(Date(it.date))] = (map[dayKeyFmt.format(Date(it.date))] ?: 0) + 1 }
         map as Map<String, Int>
     }
 
@@ -92,6 +100,16 @@ fun AppointmentListScreen(
         cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
         val end = cal.timeInMillis
         allCompromissos.filter { it.date in start..end }
+    }
+
+    // Filter turnos for selected day
+    val turnosForDay = remember(allTurnos, selectedDate) {
+        val cal = Calendar.getInstance().apply { timeInMillis = selectedDate }
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        val start = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999)
+        val end = cal.timeInMillis
+        allTurnos.filter { it.date in start..end }
     }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
@@ -141,6 +159,29 @@ fun AppointmentListScreen(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 2.dp
+                            ) {
+                                Text(
+                                    "Turno",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                            SmallFloatingActionButton(
+                                onClick = { fabExpanded = false; onAddTurno() },
+                                containerColor = Color(0xFF00BCD4).copy(alpha = 0.2f),
+                                modifier = Modifier.semantics { contentDescription = "fab_novo_turno" }
+                            ) {
+                                Icon(Icons.Filled.EventNote, contentDescription = null, tint = Color(0xFF00BCD4))
+                            }
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -290,7 +331,8 @@ fun AppointmentListScreen(
                                 fontWeight = FontWeight.Bold)
                             val treatLabel = if (treatmentsForDay.isNotEmpty()) " · ${treatmentsForDay.size} tratamento(s)" else ""
                             val compLabel = if (compromissosForDay.isNotEmpty()) " · ${compromissosForDay.size} compromisso(s)" else ""
-                            Text("${displayedAppointments.size} consulta(s)$treatLabel$compLabel",
+                            val turnoLabel = if (turnosForDay.isNotEmpty()) " · ${turnosForDay.size} turno(s)" else ""
+                            Text("${displayedAppointments.size} consulta(s)$treatLabel$compLabel$turnoLabel",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton(onClick = { showDatePicker = true }) {
@@ -325,6 +367,7 @@ fun AppointmentListScreen(
                     appointments = displayedAppointments,
                     treatments = treatmentsForDay,
                     compromissos = compromissosForDay,
+                    turnos = turnosForDay,
                     patientMap = patientMap,
                     selectedDate = selectedDate,
                     onEdit = onEditAppointment,
@@ -333,6 +376,8 @@ fun AppointmentListScreen(
                     onDeleteTreatment = { treatmentViewModel.deleteTreatment(it) },
                     onEditCompromisso = onEditCompromisso,
                     onDeleteCompromisso = { compromissoViewModel.deleteCompromisso(it) },
+                    onEditTurno = onEditTurno,
+                    onDeleteTurno = { turnoViewModel.deleteTurno(it) },
                     onPatientClick = onPatientClick,
                     onStatusChange = { appt, status -> viewModel.updateStatus(appt, status) }
                 )
@@ -368,11 +413,18 @@ private data class CompromissoBlock(
     val totalColumns: Int = 1
 )
 
+private data class TurnoBlock(
+    val turno: Turno,
+    val column: Int = 0,
+    val totalColumns: Int = 1
+)
+
 private fun computeTimelineLayout(
     appointments: List<Appointment>,
     treatments: List<Treatment>,
-    compromissos: List<Compromisso>
-): Triple<List<ApptBlock>, List<TreatBlock>, List<CompromissoBlock>> {
+    compromissos: List<Compromisso>,
+    turnos: List<Turno>
+): Pair<Triple<List<ApptBlock>, List<TreatBlock>, List<CompromissoBlock>>, List<TurnoBlock>> {
     val mergedIds = mutableSetOf<Long>()
 
     val apptBlocks = appointments.map { appt ->
@@ -391,23 +443,30 @@ private fun computeTimelineLayout(
         .map { TreatBlock(it, 0, 1) }
 
     val compromissoBlocks = compromissos.map { CompromissoBlock(it) }
+    val turnoBlocks = turnos.map { TurnoBlock(it) }
 
-    data class Interval(val start: Long, val end: Long, val apptIdx: Int?, val treatIdx: Int?, val compIdx: Int?)
+    data class Interval(val start: Long, val end: Long, val apptIdx: Int?, val treatIdx: Int?, val compIdx: Int?, val turnoIdx: Int?)
 
     val intervals = mutableListOf<Interval>()
     apptBlocks.forEachIndexed { i, b ->
         val start = truncateToMin(b.appointment.dateTime)
-        intervals += Interval(start, start + b.appointment.durationMinutes * 60_000L, i, null, null)
+        intervals += Interval(start, start + b.appointment.durationMinutes * 60_000L, i, null, null, null)
     }
     treatBlocks.forEachIndexed { i, b ->
         val start = truncateToMin(b.treatment.date)
-        intervals += Interval(start, start + b.treatment.durationMinutes * 60_000L, null, i, null)
+        intervals += Interval(start, start + b.treatment.durationMinutes * 60_000L, null, i, null, null)
     }
     compromissoBlocks.forEachIndexed { i, b ->
         val c = b.compromisso
         val start = truncateToMin(c.date)
         val end = if (c.endDate != null) truncateToMin(c.endDate) else start + TREAT_DURATION_MS
-        intervals += Interval(start, end.coerceAtLeast(start + 15 * 60_000L), null, null, i)
+        intervals += Interval(start, end.coerceAtLeast(start + 15 * 60_000L), null, null, i, null)
+    }
+    turnoBlocks.forEachIndexed { i, b ->
+        val t = b.turno
+        val start = truncateToMin(t.date)
+        val end = if (t.endDate != null) truncateToMin(t.endDate) else start + TREAT_DURATION_MS
+        intervals += Interval(start, end.coerceAtLeast(start + 15 * 60_000L), null, null, null, i)
     }
     intervals.sortBy { it.start }
 
@@ -433,15 +492,17 @@ private fun computeTimelineLayout(
     val finalAppts = apptBlocks.toMutableList()
     val finalTreats = treatBlocks.toMutableList()
     val finalComps = compromissoBlocks.toMutableList()
+    val finalTurnos = turnoBlocks.toMutableList()
     intervals.forEachIndexed { i, iv ->
         when {
             iv.apptIdx != null -> finalAppts[iv.apptIdx] = finalAppts[iv.apptIdx].copy(column = cols[i], totalColumns = totalCols[i])
             iv.treatIdx != null -> finalTreats[iv.treatIdx] = finalTreats[iv.treatIdx].copy(column = cols[i], totalColumns = totalCols[i])
             iv.compIdx != null -> finalComps[iv.compIdx] = finalComps[iv.compIdx].copy(column = cols[i], totalColumns = totalCols[i])
+            iv.turnoIdx != null -> finalTurnos[iv.turnoIdx] = finalTurnos[iv.turnoIdx].copy(column = cols[i], totalColumns = totalCols[i])
         }
     }
 
-    return Triple(finalAppts, finalTreats, finalComps)
+    return Pair(Triple(finalAppts, finalTreats, finalComps), finalTurnos)
 }
 
 @Composable
@@ -449,6 +510,7 @@ fun DayTimelineView(
     appointments: List<Appointment>,
     treatments: List<Treatment>,
     compromissos: List<Compromisso>,
+    turnos: List<Turno>,
     patientMap: Map<Long, Patient>,
     selectedDate: Long,
     onEdit: (Long) -> Unit,
@@ -457,6 +519,8 @@ fun DayTimelineView(
     onDeleteTreatment: (Treatment) -> Unit,
     onEditCompromisso: (Long) -> Unit,
     onDeleteCompromisso: (Compromisso) -> Unit,
+    onEditTurno: (Long) -> Unit,
+    onDeleteTurno: (Turno) -> Unit,
     onPatientClick: (Long) -> Unit,
     onStatusChange: (Appointment, AppointmentStatus) -> Unit
 ) {
@@ -470,8 +534,8 @@ fun DayTimelineView(
     val now = remember { Calendar.getInstance() }
     val currentMinutesFromStart = (now.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + now.get(Calendar.MINUTE)
 
-    LaunchedEffect(appointments, treatments, compromissos, selectedDate) {
-        val allTimes = appointments.map { it.dateTime } + treatments.map { it.date } + compromissos.map { it.date }
+    LaunchedEffect(appointments, treatments, compromissos, turnos, selectedDate) {
+        val allTimes = appointments.map { it.dateTime } + treatments.map { it.date } + compromissos.map { it.date } + turnos.map { it.date }
         val targetHour = if (allTimes.isNotEmpty()) {
             Calendar.getInstance().apply { timeInMillis = allTimes.min() }
                 .get(Calendar.HOUR_OF_DAY) - 1
@@ -485,9 +549,10 @@ fun DayTimelineView(
         scrollState.animateScrollTo(px)
     }
 
-    val (apptBlocks, treatBlocks, compBlocks) = remember(appointments, treatments, compromissos) {
-        computeTimelineLayout(appointments, treatments, compromissos)
+    val (tripleBlocks, turnoBlocks) = remember(appointments, treatments, compromissos, turnos) {
+        computeTimelineLayout(appointments, treatments, compromissos, turnos)
     }
+    val (apptBlocks, treatBlocks, compBlocks) = tripleBlocks
 
     Row(
         Modifier
@@ -623,6 +688,31 @@ fun DayTimelineView(
                         .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
                     onEdit = { onEditCompromisso(c.id) },
                     onDelete = { onDeleteCompromisso(c) }
+                )
+            }
+
+            // Turno blocks
+            turnoBlocks.forEach { block ->
+                val t = block.turno
+                val cal = Calendar.getInstance().apply { timeInMillis = t.date }
+                val minutesFromStart = (cal.get(Calendar.HOUR_OF_DAY) - START_HOUR) * 60 + cal.get(Calendar.MINUTE)
+                val topOffset = (hourHeight * (minutesFromStart.toFloat() / 60f)).coerceAtLeast(0.dp)
+                val durationMinutes = if (t.endDate != null) {
+                    ((t.endDate - t.date) / 60_000L).toInt().coerceAtLeast(15)
+                } else 60
+                val blockHeight = (hourHeight * (durationMinutes.toFloat() / 60f)).coerceAtLeast(40.dp)
+                val colWidth = availableWidth / block.totalColumns
+                val xOffset = colWidth * block.column
+
+                TurnoTimelineItem(
+                    turno = t,
+                    modifier = Modifier
+                        .width(colWidth)
+                        .offset(x = xOffset, y = topOffset)
+                        .height(blockHeight)
+                        .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
+                    onEdit = { onEditTurno(t.id) },
+                    onDelete = { onDeleteTurno(t) }
                 )
             }
         }
@@ -1135,6 +1225,95 @@ fun CompromissoTimelineItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+            }
+        }
+
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            DropdownMenuItem(
+                text = { Text("Editar") },
+                leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                onClick = { showMenu = false; onEdit() }
+            )
+            DropdownMenuItem(
+                text = { Text("Excluir", color = MaterialTheme.colorScheme.error) },
+                leadingIcon = { Icon(Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                onClick = { showMenu = false; showDeleteDialog = true }
+            )
+        }
+    }
+}
+
+@Composable
+fun TurnoTimelineItem(
+    turno: Turno,
+    modifier: Modifier = Modifier,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val isPendente = turno.status == TurnoStatus.PENDENTE
+    val color = if (isPendente) Color(0xFF00BCD4) else Color(0xFF00897B)
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Excluir turno") },
+            text = { Text("Deseja excluir este turno? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteDialog = false; onDelete() }) { Text("Excluir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Box(modifier) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(4.dp))
+                .clickable { showMenu = true }
+                .semantics(mergeDescendants = true) { contentDescription = "card_turno" }
+        ) {
+            Box(Modifier.width(4.dp).fillMaxHeight().background(color))
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(color.copy(alpha = 0.12f))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                val timeLabel = if (turno.endDate != null) {
+                    "${turno.date.toFormattedTime()}–${turno.endDate.toFormattedTime()}"
+                } else {
+                    turno.date.toFormattedTime()
+                }
+                Text(
+                    "$timeLabel · ${turno.name}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        turno.status.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color
+                    )
+                    if (turno.valor > 0) {
+                        Text("·", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "R$ ${"%.2f".format(turno.valor)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

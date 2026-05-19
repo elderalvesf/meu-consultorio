@@ -21,10 +21,12 @@ import androidx.compose.runtime.setValue
 import com.meuconsultorio.data.entity.Appointment
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
+import com.meuconsultorio.data.entity.TurnoStatus
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
+import com.meuconsultorio.viewmodel.TurnoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,23 +34,27 @@ fun FinancialScreen(
     onPatientClick: (Long) -> Unit,
     patientViewModel: PatientViewModel = hiltViewModel(),
     treatmentViewModel: TreatmentViewModel = hiltViewModel(),
-    appointmentViewModel: AppointmentViewModel = hiltViewModel()
+    appointmentViewModel: AppointmentViewModel = hiltViewModel(),
+    turnoViewModel: TurnoViewModel = hiltViewModel()
 ) {
     val patients by patientViewModel.patients.collectAsState()
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val allAppointments by appointmentViewModel.allAppointments.collectAsState()
+    val allTurnos by turnoViewModel.allTurnos.collectAsState()
     val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
     val totalTreatmentPrice by treatmentViewModel.totalTreatmentPrice.collectAsState()
     val totalAppointmentPrice by appointmentViewModel.totalAppointmentPrice.collectAsState()
+    val totalTurnoConfirmado by turnoViewModel.totalTurnoConfirmado.collectAsState()
 
     val patientMap = patients.associateBy { it.id }
-    val totalRevenue = totalTreatmentPrice + totalAppointmentPrice
+    val totalRevenue = totalTreatmentPrice + totalAppointmentPrice + totalTurnoConfirmado
 
     var showRevenueDetail by remember { mutableStateOf(false) }
 
     if (showRevenueDetail) {
         val concludedTreatments = allTreatments.filter { it.status == TreatmentStatus.CONCLUIDO && it.price > 0 }
         val paidAppointments = allAppointments.filter { it.isPaid && it.price > 0 }
+        val confirmedTurnos = allTurnos.filter { it.status == TurnoStatus.CONFIRMADO && it.valor > 0 }
 
         ModalBottomSheet(onDismissRequest = { showRevenueDetail = false }) {
             Column(
@@ -116,7 +122,33 @@ fun FinancialScreen(
                     }
                 }
 
-                if (concludedTreatments.isEmpty() && paidAppointments.isEmpty()) {
+                if (confirmedTurnos.isNotEmpty()) {
+                    Text("Turnos confirmados",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(8.dp))
+                    confirmedTurnos.forEach { turno ->
+                        RevenueDetailRow(
+                            title = turno.name,
+                            subtitle = if (turno.description.isNotBlank()) turno.description else "Turno",
+                            date = turno.date.toFormattedDate(),
+                            amount = turno.valor.toCurrency()
+                        )
+                    }
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal turnos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(totalTurnoConfirmado.toCurrency(),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                if (concludedTreatments.isEmpty() && paidAppointments.isEmpty() && confirmedTurnos.isEmpty()) {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         Text("Nenhum valor registrado",
                             style = MaterialTheme.typography.bodyMedium,

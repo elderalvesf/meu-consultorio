@@ -21,6 +21,7 @@ import androidx.navigation.navArgument
 import com.meuconsultorio.ui.appointments.AppointmentFormScreen
 import com.meuconsultorio.ui.appointments.AppointmentListScreen
 import com.meuconsultorio.ui.appointments.CompromissoFormScreen
+import com.meuconsultorio.ui.appointments.TurnoFormScreen
 import com.meuconsultorio.ui.auth.LoginScreen
 import com.meuconsultorio.ui.financial.FinancialScreen
 import com.meuconsultorio.ui.financial.PaymentFormScreen
@@ -87,6 +88,13 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     ) {
         fun createRoute(compromissoId: Long? = null): String =
             if (compromissoId != null) "compromisso-form?compromissoId=$compromissoId" else "compromisso-form"
+    }
+    object TurnoForm : Screen(
+        "turno-form?turnoId={turnoId}",
+        "Turno", Icons.Filled.EventNote
+    ) {
+        fun createRoute(turnoId: Long? = null): String =
+            if (turnoId != null) "turno-form?turnoId=$turnoId" else "turno-form"
     }
     object ProntuarioForm : Screen(
         "prontuario-form?patientId={patientId}&appointmentId={appointmentId}&entryId={entryId}",
@@ -190,9 +198,11 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                     onAddAppointment = { navController.navigate(Screen.AppointmentForm.createRoute()) },
                     onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute()) },
                     onAddCompromisso = { navController.navigate(Screen.CompromissoForm.createRoute()) },
+                    onAddTurno = { navController.navigate(Screen.TurnoForm.createRoute()) },
                     onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it)) },
                     onEditCompromisso = { navController.navigate(Screen.CompromissoForm.createRoute(compromissoId = it)) },
+                    onEditTurno = { navController.navigate(Screen.TurnoForm.createRoute(turnoId = it)) },
                     onPatientClick = { navController.navigate(Screen.PatientDetail.createRoute(it)) }
                 )
             }
@@ -237,6 +247,19 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                 val compromissoId = backStack.arguments?.getLong("compromissoId")?.takeIf { it != 0L }
                 CompromissoFormScreen(
                     compromissoId = compromissoId,
+                    onSave = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Screen.TurnoForm.route,
+                arguments = listOf(
+                    navArgument("turnoId") { type = NavType.LongType; defaultValue = 0L }
+                )
+            ) { backStack ->
+                val turnoId = backStack.arguments?.getLong("turnoId")?.takeIf { it != 0L }
+                TurnoFormScreen(
+                    turnoId = turnoId,
                     onSave = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )
