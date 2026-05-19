@@ -36,7 +36,7 @@ import com.meuconsultorio.viewmodel.TurnoViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-private sealed class TodayEvent(val time: Long) {
+internal sealed class TodayEvent(val time: Long) {
     class Appt(val appointment: Appointment, val patientName: String?) : TodayEvent(appointment.dateTime)
     class Treat(val treatment: Treatment, val patientName: String?) : TodayEvent(treatment.date)
     class Comp(val compromisso: Compromisso) : TodayEvent(compromisso.date)
