@@ -19,8 +19,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.meuconsultorio.data.entity.Appointment
+import com.meuconsultorio.data.entity.AppointmentStatus
 import com.meuconsultorio.data.entity.Treatment
 import com.meuconsultorio.data.entity.TreatmentStatus
+import com.meuconsultorio.data.entity.Turno
 import com.meuconsultorio.data.entity.TurnoStatus
 import com.meuconsultorio.ui.components.*
 import com.meuconsultorio.viewmodel.AppointmentViewModel
@@ -174,8 +176,8 @@ fun FinancialScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinancialCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.MedicalServices,
-                        label = "Valor tratamentos",
+                        icon = Icons.Filled.AttachMoney,
+                        label = "Receita total",
                         value = totalRevenue.toCurrency(),
                         color = MaterialTheme.colorScheme.secondary,
                         onClick = { showRevenueDetail = true }
@@ -202,15 +204,58 @@ fun FinancialScreen(
             }
 
             if (allTreatments.isEmpty()) {
-                item { EmptyState("Nenhum tratamento registrado", Modifier.height(200.dp)) }
+                item { EmptyState("Nenhum tratamento registrado", Modifier.height(80.dp)) }
             } else {
-                items(allTreatments, key = { it.id }) { treatment ->
+                items(allTreatments, key = { "t_${it.id}" }) { treatment ->
                     TreatmentFinancialCard(
                         treatment = treatment,
                         patientName = patientMap[treatment.patientId]?.name ?: "Paciente",
                         onPatientClick = { onPatientClick(treatment.patientId) },
                         onStatusChange = { newStatus ->
                             treatmentViewModel.saveTreatment(treatment.copy(status = newStatus))
+                        }
+                    )
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(4.dp))
+                Text("Consultas", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+
+            if (allAppointments.isEmpty()) {
+                item { EmptyState("Nenhuma consulta registrada", Modifier.height(80.dp)) }
+            } else {
+                items(allAppointments, key = { "a_${it.id}" }) { appointment ->
+                    AppointmentFinancialCard(
+                        appointment = appointment,
+                        patientName = patientMap[appointment.patientId]?.name ?: "Paciente",
+                        onPatientClick = { onPatientClick(appointment.patientId) },
+                        onTogglePaid = {
+                            appointmentViewModel.saveAppointment(appointment.copy(isPaid = !appointment.isPaid))
+                        },
+                        onStatusChange = { newStatus ->
+                            appointmentViewModel.updateStatus(appointment, newStatus)
+                        }
+                    )
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(4.dp))
+                Text("Turnos", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+
+            if (allTurnos.isEmpty()) {
+                item { EmptyState("Nenhum turno registrado", Modifier.height(80.dp)) }
+            } else {
+                items(allTurnos, key = { "tn_${it.id}" }) { turno ->
+                    TurnoFinancialCard(
+                        turno = turno,
+                        onStatusChange = { newStatus ->
+                            turnoViewModel.saveTurno(turno.copy(status = newStatus))
                         }
                     )
                 }
@@ -348,6 +393,167 @@ fun TreatmentFinancialCard(
                                 text = { Text(status.label) },
                                 onClick = { pendingStatus = status; showStatusMenu = false }
                             )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AppointmentFinancialCard(
+    appointment: Appointment,
+    patientName: String,
+    onPatientClick: () -> Unit,
+    onTogglePaid: () -> Unit,
+    onStatusChange: (AppointmentStatus) -> Unit
+) {
+    var showStatusMenu by remember { mutableStateOf(false) }
+    var pendingStatus by remember { mutableStateOf<AppointmentStatus?>(null) }
+
+    pendingStatus?.let { status ->
+        AlertDialog(
+            onDismissRequest = { pendingStatus = null },
+            title = { Text("Alterar status") },
+            text = { Text("Alterar status de \"${appointment.status.label}\" para \"${status.label}\"?") },
+            confirmButton = {
+                TextButton(onClick = { onStatusChange(status); pendingStatus = null }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingStatus = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(patientName, style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clickable(onClick = onPatientClick))
+                Text(appointment.procedureType, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(appointment.dateTime.toFormattedDate(), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                if (appointment.price > 0)
+                    Text(appointment.price.toCurrency(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // isPaid toggle
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (appointment.isPaid) androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.clickable(onClick = onTogglePaid)
+                    ) {
+                        Text(
+                            if (appointment.isPaid) "Pago" else "Não pago",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (appointment.isPaid) androidx.compose.ui.graphics.Color(0xFF2E7D32)
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    // Status dropdown
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.clickable { showStatusMenu = true }
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(appointment.status.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Spacer(Modifier.width(2.dp))
+                                Icon(Icons.Filled.ArrowDropDown, null,
+                                    Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                            }
+                        }
+                        DropdownMenu(expanded = showStatusMenu, onDismissRequest = { showStatusMenu = false }) {
+                            AppointmentStatus.entries.forEach { status ->
+                                DropdownMenuItem(
+                                    text = { Text(status.label) },
+                                    onClick = { pendingStatus = status; showStatusMenu = false }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TurnoFinancialCard(
+    turno: Turno,
+    onStatusChange: (TurnoStatus) -> Unit
+) {
+    val isConfirmado = turno.status == TurnoStatus.CONFIRMADO
+    val statusColor = if (isConfirmado) androidx.compose.ui.graphics.Color(0xFF00897B)
+                      else androidx.compose.ui.graphics.Color(0xFF00BCD4)
+    var pendingStatus by remember { mutableStateOf<TurnoStatus?>(null) }
+
+    pendingStatus?.let { status ->
+        AlertDialog(
+            onDismissRequest = { pendingStatus = null },
+            title = { Text("Alterar status") },
+            text = { Text("Alterar de \"${turno.status.label}\" para \"${status.label}\"?\n\n" +
+                if (status == TurnoStatus.CONFIRMADO) "O valor será contabilizado no financeiro."
+                else "O valor será removido do financeiro.") },
+            confirmButton = {
+                TextButton(onClick = { onStatusChange(status); pendingStatus = null }) { Text("Confirmar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingStatus = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(turno.name, style = MaterialTheme.typography.titleMedium)
+                if (turno.description.isNotBlank()) {
+                    Text(turno.description, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(turno.date.toFormattedDate(), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                if (turno.valor > 0)
+                    Text(turno.valor.toCurrency(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isConfirmado) statusColor else MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                Box {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = statusColor.copy(alpha = 0.15f),
+                        modifier = Modifier.clickable { pendingStatus = if (isConfirmado) TurnoStatus.PENDENTE else TurnoStatus.CONFIRMADO }
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(turno.status.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = statusColor)
+                            Spacer(Modifier.width(2.dp))
+                            Icon(Icons.Filled.ArrowDropDown, null,
+                                Modifier.size(14.dp), tint = statusColor)
                         }
                     }
                 }
