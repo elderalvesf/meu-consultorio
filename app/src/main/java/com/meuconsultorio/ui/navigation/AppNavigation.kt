@@ -18,6 +18,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.meuconsultorio.ui.appointments.AppointmentDetailScreen
 import com.meuconsultorio.ui.appointments.AppointmentFormScreen
 import com.meuconsultorio.ui.appointments.AppointmentListScreen
 import com.meuconsultorio.ui.appointments.CompromissoFormScreen
@@ -95,6 +96,12 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     ) {
         fun createRoute(turnoId: Long? = null): String =
             if (turnoId != null) "turno-form?turnoId=$turnoId" else "turno-form"
+    }
+    object AppointmentDetail : Screen(
+        "appointment-detail/{appointmentId}",
+        "Consulta", Icons.Filled.EventNote
+    ) {
+        fun createRoute(id: Long) = "appointment-detail/$id"
     }
     object ProntuarioForm : Screen(
         "prontuario-form?patientId={patientId}&appointmentId={appointmentId}&entryId={entryId}",
@@ -199,10 +206,25 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
                     onAddTreatment = { navController.navigate(Screen.TreatmentForm.createRoute()) },
                     onAddCompromisso = { navController.navigate(Screen.CompromissoForm.createRoute()) },
                     onAddTurno = { navController.navigate(Screen.TurnoForm.createRoute()) },
+                    onViewAppointment = { navController.navigate(Screen.AppointmentDetail.createRoute(it)) },
                     onEditAppointment = { navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = it)) },
                     onEditTreatment = { navController.navigate(Screen.TreatmentForm.createRoute(treatmentId = it)) },
                     onEditCompromisso = { navController.navigate(Screen.CompromissoForm.createRoute(compromissoId = it)) },
                     onEditTurno = { navController.navigate(Screen.TurnoForm.createRoute(turnoId = it)) },
+                    onPatientClick = { navController.navigate(Screen.PatientDetail.createRoute(it)) }
+                )
+            }
+            composable(
+                route = Screen.AppointmentDetail.route,
+                arguments = listOf(navArgument("appointmentId") { type = NavType.LongType })
+            ) { backStack ->
+                val appointmentId = backStack.arguments?.getLong("appointmentId") ?: 0L
+                AppointmentDetailScreen(
+                    appointmentId = appointmentId,
+                    onEdit = {
+                        navController.navigate(Screen.AppointmentForm.createRoute(appointmentId = appointmentId))
+                    },
+                    onBack = { navController.popBackStack() },
                     onPatientClick = { navController.navigate(Screen.PatientDetail.createRoute(it)) }
                 )
             }

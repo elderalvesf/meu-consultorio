@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -25,6 +27,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -74,6 +78,7 @@ fun AppointmentFormScreen(
     var priceText by remember { mutableStateOf("") }
     var attachmentPaths by remember { mutableStateOf<List<String>>(emptyList()) }
     var isAddingAttachment by remember { mutableStateOf(false) }
+    var imageToView by remember { mutableStateOf<String?>(null) }
     var isPaid by remember { mutableStateOf(false) }
     var dateTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var existingCalendarEventId by remember { mutableLongStateOf(-1L) }
@@ -132,26 +137,30 @@ fun AppointmentFormScreen(
     }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
             coroutineScope.launch {
                 isAddingAttachment = true
-                val path = viewModel.saveFileToInternalStorage(context, it, "image/*")
-                if (path != null) attachmentPaths = attachmentPaths + path
+                uris.forEach { uri ->
+                    val path = viewModel.saveFileToInternalStorage(context, uri, "image/*")
+                    if (path != null) attachmentPaths = attachmentPaths + path
+                }
                 isAddingAttachment = false
             }
         }
     }
 
     val pdfPickerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
             coroutineScope.launch {
                 isAddingAttachment = true
-                val path = viewModel.saveFileToInternalStorage(context, it, "application/pdf")
-                if (path != null) attachmentPaths = attachmentPaths + path
+                uris.forEach { uri ->
+                    val path = viewModel.saveFileToInternalStorage(context, uri, "application/pdf")
+                    if (path != null) attachmentPaths = attachmentPaths + path
+                }
                 isAddingAttachment = false
             }
         }
@@ -411,6 +420,36 @@ fun AppointmentFormScreen(
         )
     }
 
+    // Fullscreen image viewer
+    imageToView?.let { path ->
+        Dialog(
+            onDismissRequest = { imageToView = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.95f))
+                    .clickable { imageToView = null }
+            ) {
+                AsyncImage(
+                    model = Uri.fromFile(File(path)),
+                    contentDescription = "Anexo",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    contentScale = ContentScale.Fit
+                )
+                IconButton(
+                    onClick = { imageToView = null },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+                ) {
+                    Icon(Icons.Filled.Close, "Fechar", tint = Color.White)
+                }
+            }
+        }
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -658,7 +697,7 @@ fun AppointmentFormScreen(
 
                 attachmentPaths.forEach { path ->
                     val file = File(path)
-                    val isPdf = path.endsWith(".pdf")
+                    val isPdf = path.endsWith(".pdf", ignoreCase = true)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -681,7 +720,10 @@ fun AppointmentFormScreen(
                                 AsyncImage(
                                     model = Uri.fromFile(file),
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { imageToView = path },
                                     contentScale = ContentScale.Crop
                                 )
                                 Spacer(Modifier.width(8.dp))
@@ -715,7 +757,7 @@ fun AppointmentFormScreen(
                     ) {
                         Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Imagem")
+                        Text("Imagem(ns)")
                     }
                     OutlinedButton(
                         onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) },
@@ -723,7 +765,7 @@ fun AppointmentFormScreen(
                     ) {
                         Icon(Icons.Filled.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("PDF")
+                        Text("PDF(s)")
                     }
                 }
             }

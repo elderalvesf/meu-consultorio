@@ -53,6 +53,7 @@ fun AppointmentListScreen(
     onAddTreatment: () -> Unit,
     onAddCompromisso: () -> Unit,
     onAddTurno: () -> Unit,
+    onViewAppointment: (Long) -> Unit,
     onEditAppointment: (Long) -> Unit,
     onEditTreatment: (Long) -> Unit,
     onEditCompromisso: (Long) -> Unit,
@@ -370,6 +371,7 @@ fun AppointmentListScreen(
                     turnos = turnosForDay,
                     patientMap = patientMap,
                     selectedDate = selectedDate,
+                    onView = onViewAppointment,
                     onEdit = onEditAppointment,
                     onDelete = { viewModel.deleteAppointment(it) },
                     onEditTreatment = onEditTreatment,
@@ -513,6 +515,7 @@ fun DayTimelineView(
     turnos: List<Turno>,
     patientMap: Map<Long, Patient>,
     selectedDate: Long,
+    onView: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onDelete: (Appointment) -> Unit,
     onEditTreatment: (Long) -> Unit,
@@ -634,6 +637,7 @@ fun DayTimelineView(
                         .offset(x = xOffset, y = topOffset)
                         .height(blockHeight)
                         .padding(start = 4.dp, end = 8.dp, bottom = 2.dp),
+                    onView = { onView(appt.id) },
                     onEdit = { onEdit(appt.id) },
                     onDelete = { onDelete(appt) },
                     onPatientClick = { patientMap[appt.patientId]?.let { onPatientClick(it.id) } },
@@ -725,6 +729,7 @@ fun AppointmentTimelineItem(
     patientName: String,
     mergedTreatments: List<Treatment> = emptyList(),
     modifier: Modifier = Modifier,
+    onView: () -> Unit = {},
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onPatientClick: () -> Unit,
@@ -841,6 +846,11 @@ fun AppointmentTimelineItem(
                 onClick = { showMenu = false; onPatientClick() }
             )
             HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("Ver detalhes") },
+                leadingIcon = { Icon(Icons.Filled.Visibility, null) },
+                onClick = { showMenu = false; onView() }
+            )
             DropdownMenuItem(
                 text = { Text("Editar") },
                 leadingIcon = { Icon(Icons.Filled.Edit, null) },
