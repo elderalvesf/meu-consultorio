@@ -48,7 +48,7 @@ fun FinancialScreen(
 
     val patientMap = patients.associateBy { it.id }
 
-    var filterByMonth by remember { mutableStateOf(false) }
+    var filterByMonth by remember { mutableStateOf(true) }
     var filterYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var filterMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
 
