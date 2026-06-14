@@ -29,6 +29,8 @@ import com.meuconsultorio.viewmodel.AppointmentViewModel
 import com.meuconsultorio.viewmodel.PatientViewModel
 import com.meuconsultorio.viewmodel.TreatmentViewModel
 import com.meuconsultorio.viewmodel.TurnoViewModel
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,20 +45,54 @@ fun FinancialScreen(
     val allTreatments by treatmentViewModel.allTreatments.collectAsState()
     val allAppointments by appointmentViewModel.allAppointments.collectAsState()
     val allTurnos by turnoViewModel.allTurnos.collectAsState()
-    val totalTreatmentCost by treatmentViewModel.totalTreatmentCost.collectAsState()
-    val totalTreatmentPrice by treatmentViewModel.totalTreatmentPrice.collectAsState()
-    val totalAppointmentPrice by appointmentViewModel.totalAppointmentPrice.collectAsState()
-    val totalTurnoConfirmado by turnoViewModel.totalTurnoConfirmado.collectAsState()
 
     val patientMap = patients.associateBy { it.id }
-    val totalRevenue = totalTreatmentPrice + totalAppointmentPrice + totalTurnoConfirmado
+
+    var filterByMonth by remember { mutableStateOf(false) }
+    var filterYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    var filterMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
+
+    val filteredTreatments = remember(allTreatments, filterByMonth, filterYear, filterMonth) {
+        if (!filterByMonth) allTreatments
+        else allTreatments.filter {
+            val cal = Calendar.getInstance().apply { timeInMillis = it.date }
+            cal.get(Calendar.YEAR) == filterYear && cal.get(Calendar.MONTH) == filterMonth
+        }
+    }
+    val filteredAppointments = remember(allAppointments, filterByMonth, filterYear, filterMonth) {
+        if (!filterByMonth) allAppointments
+        else allAppointments.filter {
+            val cal = Calendar.getInstance().apply { timeInMillis = it.dateTime }
+            cal.get(Calendar.YEAR) == filterYear && cal.get(Calendar.MONTH) == filterMonth
+        }
+    }
+    val filteredTurnos = remember(allTurnos, filterByMonth, filterYear, filterMonth) {
+        if (!filterByMonth) allTurnos
+        else allTurnos.filter {
+            val cal = Calendar.getInstance().apply { timeInMillis = it.date }
+            cal.get(Calendar.YEAR) == filterYear && cal.get(Calendar.MONTH) == filterMonth
+        }
+    }
+
+    val filteredTreatmentPrice = filteredTreatments.filter { it.status == TreatmentStatus.CONCLUIDO }.sumOf { it.price }
+    val filteredTreatmentCost = filteredTreatments.sumOf { it.cost }
+    val filteredAppointmentPrice = filteredAppointments.filter { it.isPaid }.sumOf { it.price }
+    val filteredTurnoConfirmado = filteredTurnos.filter { it.status == TurnoStatus.CONFIRMADO }.sumOf { it.valor }
+    val totalRevenue = filteredTreatmentPrice + filteredAppointmentPrice + filteredTurnoConfirmado
+
+    val filterMonthLabel = remember(filterYear, filterMonth) {
+        val cal = Calendar.getInstance().apply { set(filterYear, filterMonth, 1) }
+        val name = cal.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale("pt", "BR"))
+            ?.replaceFirstChar { it.uppercase() } ?: ""
+        "$name $filterYear"
+    }
 
     var showRevenueDetail by remember { mutableStateOf(false) }
 
     if (showRevenueDetail) {
-        val concludedTreatments = allTreatments.filter { it.status == TreatmentStatus.CONCLUIDO && it.price > 0 }
-        val paidAppointments = allAppointments.filter { it.isPaid && it.price > 0 }
-        val confirmedTurnos = allTurnos.filter { it.status == TurnoStatus.CONFIRMADO && it.valor > 0 }
+        val concludedTreatments = filteredTreatments.filter { it.status == TreatmentStatus.CONCLUIDO && it.price > 0 }
+        val paidAppointments = filteredAppointments.filter { it.isPaid && it.price > 0 }
+        val confirmedTurnos = filteredTurnos.filter { it.status == TurnoStatus.CONFIRMADO && it.valor > 0 }
 
         ModalBottomSheet(onDismissRequest = { showRevenueDetail = false }) {
             Column(
@@ -91,7 +127,7 @@ fun FinancialScreen(
                         Text("Subtotal tratamentos",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(totalTreatmentPrice.toCurrency(),
+                        Text(filteredTreatmentPrice.toCurrency(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary)
@@ -117,7 +153,7 @@ fun FinancialScreen(
                         Text("Subtotal consultas",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(totalAppointmentPrice.toCurrency(),
+                        Text(filteredAppointmentPrice.toCurrency(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary)
@@ -142,7 +178,7 @@ fun FinancialScreen(
                         Text("Subtotal turnos",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(totalTurnoConfirmado.toCurrency(),
+                        Text(filteredTurnoConfirmado.toCurrency(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary)
@@ -173,6 +209,55 @@ fun FinancialScreen(
                 Text("Resumo financeiro", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = !filterByMonth,
+                        onClick = { filterByMonth = false },
+                        label = { Text("Total geral") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = filterByMonth,
+                        onClick = { filterByMonth = true },
+                        label = { Text("Por mês") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (filterByMonth) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        IconButton(onClick = {
+                            if (filterMonth == 0) { filterMonth = 11; filterYear-- }
+                            else filterMonth--
+                        }) {
+                            Icon(Icons.Filled.ChevronLeft, contentDescription = "Mês anterior")
+                        }
+                        Text(
+                            filterMonthLabel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.widthIn(min = 160.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        IconButton(onClick = {
+                            if (filterMonth == 11) { filterMonth = 0; filterYear++ }
+                            else filterMonth++
+                        }) {
+                            Icon(Icons.Filled.ChevronRight, contentDescription = "Próximo mês")
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FinancialCard(
                         modifier = Modifier.weight(1f),
@@ -186,7 +271,7 @@ fun FinancialScreen(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Filled.MoneyOff,
                         label = "Custo materiais",
-                        value = totalTreatmentCost.toCurrency(),
+                        value = filteredTreatmentCost.toCurrency(),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
@@ -195,7 +280,7 @@ fun FinancialScreen(
                     modifier = Modifier.fillMaxWidth(),
                     icon = Icons.Filled.TrendingUp,
                     label = "Lucro",
-                    value = (totalRevenue - totalTreatmentCost).toCurrency(),
+                    value = (totalRevenue - filteredTreatmentCost).toCurrency(),
                     color = MaterialTheme.colorScheme.tertiary
                 )
                 Spacer(Modifier.height(8.dp))
@@ -203,10 +288,10 @@ fun FinancialScreen(
                     color = MaterialTheme.colorScheme.primary)
             }
 
-            if (allTreatments.isEmpty()) {
+            if (filteredTreatments.isEmpty()) {
                 item { EmptyState("Nenhum tratamento registrado", Modifier.height(80.dp)) }
             } else {
-                items(allTreatments, key = { "t_${it.id}" }) { treatment ->
+                items(filteredTreatments, key = { "t_${it.id}" }) { treatment ->
                     TreatmentFinancialCard(
                         treatment = treatment,
                         patientName = patientMap[treatment.patientId]?.name ?: "Paciente",
@@ -224,10 +309,10 @@ fun FinancialScreen(
                     color = MaterialTheme.colorScheme.primary)
             }
 
-            if (allAppointments.isEmpty()) {
+            if (filteredAppointments.isEmpty()) {
                 item { EmptyState("Nenhuma consulta registrada", Modifier.height(80.dp)) }
             } else {
-                items(allAppointments, key = { "a_${it.id}" }) { appointment ->
+                items(filteredAppointments, key = { "a_${it.id}" }) { appointment ->
                     AppointmentFinancialCard(
                         appointment = appointment,
                         patientName = patientMap[appointment.patientId]?.name ?: "Paciente",
@@ -248,10 +333,10 @@ fun FinancialScreen(
                     color = MaterialTheme.colorScheme.primary)
             }
 
-            if (allTurnos.isEmpty()) {
+            if (filteredTurnos.isEmpty()) {
                 item { EmptyState("Nenhum turno registrado", Modifier.height(80.dp)) }
             } else {
-                items(allTurnos, key = { "tn_${it.id}" }) { turno ->
+                items(filteredTurnos, key = { "tn_${it.id}" }) { turno ->
                     TurnoFinancialCard(
                         turno = turno,
                         onStatusChange = { newStatus ->
@@ -444,7 +529,6 @@ fun AppointmentFinancialCard(
                         color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // isPaid toggle
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = if (appointment.isPaid) androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.15f)
@@ -459,7 +543,6 @@ fun AppointmentFinancialCard(
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    // Status dropdown
                     Box {
                         Surface(
                             shape = RoundedCornerShape(50),
