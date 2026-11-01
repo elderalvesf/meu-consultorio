@@ -1,0 +1,22 @@
+{
+  "name": "automation-exercise-tests",
+  "version": "1.0.0",
+  "description": "Testes E2E (Playwright + TypeScript) para o site Automation Exercise - casos 1, 2, 3, 4, 5, 8, 9, 10, 15 e 16",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.6",
+    "typescript": "~5.9"
+  }
+}
