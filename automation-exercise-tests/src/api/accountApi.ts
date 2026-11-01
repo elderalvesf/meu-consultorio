@@ -1,4 +1,4 @@
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, APIResponse } from '@playwright/test';
 import type { User } from '../data/user';
 
 /**
@@ -6,8 +6,22 @@ import type { User } from '../data/user';
  * Usados para preparar/limpar dados sem passar pela UI. A API sempre responde HTTP 200
  * e informa o resultado real em `responseCode` no corpo.
  */
-async function parse(response: import('@playwright/test').APIResponse) {
-  return JSON.parse(await response.text()) as { responseCode: number; message: string };
+interface ApiBody {
+  responseCode: number;
+  message: string;
+}
+
+async function parse(response: APIResponse, operation: string): Promise<ApiBody> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text) as ApiBody;
+  } catch {
+    // Quando o site está fora do ar ou bloqueia a requisição, ele devolve HTML.
+    throw new Error(
+      `${operation}: resposta não-JSON (HTTP ${response.status()}). ` +
+        `O site pode estar indisponível. Início do corpo: ${text.slice(0, 120).replace(/\s+/g, ' ')}`,
+    );
+  }
 }
 
 export async function createAccount(request: APIRequestContext, user: User) {
@@ -32,17 +46,25 @@ export async function createAccount(request: APIRequestContext, user: User) {
       mobile_number: user.mobile,
     },
   });
-  const body = await parse(response);
+  const body = await parse(response, 'createAccount');
   if (body.responseCode !== 201) {
     throw new Error(`Falha ao criar conta via API: ${body.responseCode} - ${body.message}`);
   }
 }
 
-/** Idempotente: se a conta já foi removida pelo teste, apenas ignora. */
+/**
+ * Limpeza "best effort": nunca falha o teste. Se a conta já foi removida pela UI
+ * (ou nunca foi criada) ou o site não responder, apenas registra um aviso.
+ */
 export async function deleteAccount(request: APIRequestContext, user: Pick<User, 'email' | 'password'>) {
-  const response = await request.delete('/api/deleteAccount', {
-    form: { email: user.email, password: user.password },
-  });
-  const body = await parse(response);
-  return body.responseCode === 200;
+  try {
+    const response = await request.delete('/api/deleteAccount', {
+      form: { email: user.email, password: user.password },
+    });
+    const body = await parse(response, 'deleteAccount');
+    return body.responseCode === 200;
+  } catch (error) {
+    console.warn(`[cleanup] não foi possível remover ${user.email}: ${(error as Error).message}`);
+    return false;
+  }
 }
