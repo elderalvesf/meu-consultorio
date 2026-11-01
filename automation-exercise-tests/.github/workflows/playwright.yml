@@ -1,0 +1,52 @@
+name: E2E - Automation Exercise
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Instalar browsers do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Executar testes
+        run: npm test
+
+      - name: Resumo no job summary
+        if: always()
+        run: |
+          echo "### Resultado dos testes E2E" >> "$GITHUB_STEP_SUMMARY"
+          echo "Relatório HTML e JUnit disponíveis como artefatos deste run." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: automation-exercise-tests/playwright-report/
+          retention-days: 14
+
+      - name: Publicar JUnit e traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: automation-exercise-tests/test-results/
+          retention-days: 14
